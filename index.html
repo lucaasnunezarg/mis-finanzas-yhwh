@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-3elRWTJOE+dUD0eVGxj6XI3RUHg4AI0F0B19ZNtd7gg='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-ug8b2fAr75doLD6aPLs10+vSGKwQazQCUOLbsb7tJds='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -436,13 +436,32 @@ const isMobile=()=>matchMedia('(max-width:860px)').matches;
 const FLASH=new Set();
 /* ===== red ===== */
 let queue=LS.get('queue',[]);
+/* el servidor de esta app se identifica con APP_ID. El de otra app (por ejemplo, la de finanzas personales, que vive en el mismo
+   sitio y cuya clave el navegador puede autocompletar) no lo hace: con ese servidor la app no muestra nada, no escribe nada y
+   borra lo que haya guardado en el dispositivo */
+const APP_ID='mis-finanzas-yhwh';
+const esYHWH=r=>!!r&&r.app===APP_ID;
+let srvOk=false;
+const marcarOk=()=>{srvOk=true;LS.set('srv',hash(CFG.url))};
+const OTRA_APP='Esa URL y ese token son de otra app, no de Mis Finanzas YHWH. No se escribió nada en esa planilla y se borró de este dispositivo lo que se había mostrado. Conectá la app con la URL y el token del proyecto APP MIS FINANZAS YHWH.';
+function otraApp(){queue=[];S.data={};S.cfg={};S.live=false;S.syncing=false;srvOk=false;CFG.url='';CFG.token='';
+  ['url','token','cache','cachecfg','queue','srv'].forEach(LS.del);setSync();render();showSetup(OTRA_APP)}
 async function apiPost(body){
-  const r=await fetch(CFG.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,token:CFG.token}),redirect:'follow',credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store'});
+  const r=await fetch(CFG.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,app:APP_ID,token:CFG.token}),redirect:'follow',credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store'});
   return r.json()}
 let flushing=false,flushTimer=null,avisoAut=false,lastLoad=0;
+/* antes de escribir por primera vez en la sesión, confirma que el servidor es el de esta app */
+/* sin la marca: si no es un token rechazado ni un "ocupado, probá después", es el servidor de otra app */
+const esOtra=r=>!esYHWH(r)&&r.error!=='no autorizado'&&!r.retry;
+async function verificar(){if(srvOk)return true;const r=await apiPost({op:'ping'});
+  if(r.ok&&esYHWH(r)){marcarOk();return true}
+  if(esOtra(r))otraApp();
+  else if(r.error==='no autorizado'){if(!avisoAut){avisoAut=true;toast('El servidor no reconoce el token. Revisá la conexión en Ajustes')}}
+  else if(r.retry&&!flushTimer){flushTimer=setTimeout(()=>{flushTimer=null;flush()},65000)}
+  return false}
 /* manda la cola de a una. Un cambio no se pierde si el servidor está ocupado, frena por exceso de pedidos o no reconoce el token: queda en la cola */
 async function flush(){if(flushing||!queue.length||!CFG.url)return;flushing=true;setSync();
-  try{while(queue.length){const op=queue[0];const r=await apiPost(op);
+  try{if(await verificar())while(queue.length){const op=queue[0];const r=await apiPost(op);
       if(!r.ok&&(r.retry||r.error==='no autorizado')){
         if(r.error==='no autorizado'){if(!avisoAut){avisoAut=true;toast('El servidor no reconoce el token. Revisá la conexión en Ajustes')}}
         else if(!flushTimer){flushTimer=setTimeout(()=>{flushTimer=null;flush()},65000)}
@@ -458,8 +477,10 @@ const hasData=()=>Object.keys(S.data).some(k=>(S.data[k]||[]).length);
 async function load(){
   if(!CFG.url)return false;
   S.syncing=true;setSync();
-  try{const r=await apiPost({op:'read'});if(!r.ok)throw new Error(r.error||'error');
-    await flush();
+  try{const r=await apiPost({op:'read'});
+    if(esOtra(r)){otraApp();return false}
+    if(!r.ok)throw new Error(r.error||'error');
+    marcarOk();await flush();
     /* Deudas y PagosDeuda viven en la planilla de la otra app: si el servidor no las pudo leer, se queda con la última copia y avisa */
     const prev={Deudas:D('Deudas'),PagosDeuda:D('PagosDeuda')},ce=r.data.compartidas_error;
     S.data=r.data;S.cfg=r.data.Config||{};delete S.data.Config;delete S.data.compartidas_error;
@@ -1184,7 +1205,7 @@ document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='impf'&&t.files[0]){importFile(t.files[0]);t.value=''}});
 ACT2.syncNow=async()=>{toast('Sincronizando…');await load();render();if(S.live)toast('Listo')};
 ACT2.reconnect=()=>showSetup();
-ACT2.disconnect=()=>ask('¿Cerrar sesión en este dispositivo? Tus datos siguen en la planilla.','Cerrar sesión',()=>{['url','token','cache','cachecfg','queue','lock','lockfail','sec','per','cur','acc','hid','hideall'].forEach(LS.del);location.reload()});
+ACT2.disconnect=()=>ask('¿Cerrar sesión en este dispositivo? Tus datos siguen en la planilla.','Cerrar sesión',()=>{['url','token','srv','cache','cachecfg','queue','lock','lockfail','sec','per','cur','acc','hid','hideall'].forEach(LS.del);location.reload()});
 ACT2.exportar=()=>{const b=new Blob([JSON.stringify({data:S.data,config:S.cfg},null,1)],{type:'application/json'});const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='mis-finanzas-'+todayISO()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast('Descargando copia de seguridad')};
 ACT2.resetAll=()=>ask('¿Restablecer el orden y tamaño de todas las tarjetas de este dispositivo?','Restablecer',()=>{setCfg('layout_'+dev(),{});toast('Listo')},'wh');
 ACT2.copy=(p,b)=>{const t=b.dataset.t||'';const ok=()=>toast('Copiado'),no=()=>toast('No se pudo copiar. Mantené apretado el texto para copiarlo');
@@ -1215,6 +1236,7 @@ async function importFile(f){try{
   const cfgIn=j.config&&typeof j.config==='object'&&!Array.isArray(j.config)?j.config:null;
   if(j.data&&typeof j.data==='object'&&!Array.isArray(j.data))j=j.data;
   let n=0,rech=0;
+  if(!await verificar())throw new Error('no pude confirmar que el servidor sea el de esta app');
   for(const t of TABLAS_IMP){const rows=(Array.isArray(j[t])?j[t]:[]).filter(x=>x&&typeof x==='object'&&!Array.isArray(x));if(rows.length>20000)throw new Error('demasiadas filas en '+t);
     for(let i=0;i<rows.length;i+=250){toast(`Importando ${t} ${Math.min(i+250,rows.length)}/${rows.length}…`);const r=await apiPost({op:'import',tables:{[t]:rows.slice(i,i+250)}});if(!r.ok)throw new Error(r.error);n+=(r.counts&&r.counts[t])||0;rech+=(r.counts&&r.counts.rechazadas)||0}}
   /* categorías con color: solo si todavía no hay ninguna guardada, para no pisar las tuyas */
@@ -1274,15 +1296,18 @@ document.addEventListener('visibilitychange',()=>{
   /* al volver a la app, se actualizan los datos si pasó un rato */
   if(CFG.url&&!$('#setup').classList.contains('on')&&Date.now()-lastLoad>45000)load().then(ok=>{if(ok)render()})});
 /* ===== conexión inicial ===== */
-function showSetup(){const el=$('#setup'),had=!!(LS.get('url','')&&LS.get('token',''));const prev={url:CFG.url,token:CFG.token};el.classList.add('on');
-  el.innerHTML=`${LOGO('lk')}<div class="h" style="font-size:18px">MIS FINANZAS</div><small>Conectá la app con tu planilla</small><div class="sset"><div class="fl"><label>URL de tu Apps Script (termina en /exec)</label><input id="su" maxlength="300" value="${esc(CFG.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off"></div>
-   <div class="fl"><label>Token de acceso</label><input id="st" type="password" maxlength="120" value="${esc(CFG.token)}" placeholder="El que te mostró el script" autocapitalize="off" autocorrect="off"></div><div class="acts" style="justify-content:stretch">${had?'<button class="btn" id="scan">Cancelar</button>':''}<button class="btn wh" id="sgo" style="flex:1;justify-content:center">Conectar</button></div><small id="smsg" style="display:block;margin-top:10px"></small><small style="display:block;margin-top:8px">Se guardan solo en este dispositivo.</small></div>`;
+function showSetup(msg){const el=$('#setup'),had=!!(LS.get('url','')&&LS.get('token',''));const prev={url:CFG.url,token:CFG.token};el.classList.add('on');
+  el.innerHTML=`${LOGO('lk')}<div class="h" style="font-size:18px">MIS FINANZAS</div><small>Conectá la app con tu planilla</small><div class="sset"><div class="fl"><label>URL de tu Apps Script (termina en /exec)</label><input id="su" name="yhwh-servidor" maxlength="300" value="${esc(CFG.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+   <div class="fl"><label>Token de acceso</label><input id="st" name="yhwh-clave" type="password" maxlength="120" value="${esc(CFG.token)}" placeholder="El que te mostró el script" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false"></div><div class="acts" style="justify-content:stretch">${had?'<button class="btn" id="scan">Cancelar</button>':''}<button class="btn wh" id="sgo" style="flex:1;justify-content:center">Conectar</button></div><small id="smsg" style="display:block;margin-top:10px">${esc(msg||'')}</small><small style="display:block;margin-top:8px">Se guardan solo en este dispositivo.</small></div>`;
   const cn=$('#scan');if(cn)cn.onclick=()=>{CFG.url=prev.url;CFG.token=prev.token;el.classList.remove('on')};
   $('#sgo').onclick=async()=>{const u=$('#su').value.trim(),t=$('#st').value.trim();if(!/^https:\/\/script\.google\.com\//.test(u)){$('#smsg').textContent='La URL tiene que empezar con https://script.google.com/';return}
     if(!t){$('#smsg').textContent='Falta el token';return}
     const b=$('#sgo');b.disabled=true;$('#smsg').textContent='Conectando…';CFG.url=u;CFG.token=t;
-    try{const r=await apiPost({op:'ping'});if(!r.ok)throw new Error(r.error||'sin respuesta');LS.set('url',u);LS.set('token',t);el.classList.remove('on');await start()}
-    catch(e){b.disabled=false;CFG.url=prev.url;CFG.token=prev.token;$('#smsg').textContent='No pude conectar: '+e.message+'. Revisá la URL, el token y que la implementación sea "Cualquier persona".'}}}
+    try{const r=await apiPost({op:'ping'});if(esOtra(r)){const er=new Error('otra app');er.otra=1;throw er}if(!r.ok)throw new Error(r.error||'sin respuesta');
+      /* otro servidor: lo guardado del anterior no se muestra ni se le manda al nuevo */
+      if(u!==prev.url||LS.get('srv','')!==hash(u)){S.data={};S.cfg={};queue=[];['cache','cachecfg','queue'].forEach(LS.del)}
+      LS.set('url',u);LS.set('token',t);marcarOk();el.classList.remove('on');await start()}
+    catch(e){b.disabled=false;CFG.url=prev.url;CFG.token=prev.token;$('#smsg').textContent=e.otra?'Esa URL y ese token son de otra app, no de Mis Finanzas YHWH. Usá los del proyecto APP MIS FINANZAS YHWH.':'No pude conectar: '+e.message+'. Revisá la URL, el token y que la implementación sea "Cualquier persona".'}}}
 /* sin zoom: ni pellizco ni doble toque */
 ['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
 document.addEventListener('touchmove',e=>{if(e.touches.length>1||(e.scale&&e.scale!==1))e.preventDefault()},{passive:false});
@@ -1300,6 +1325,8 @@ async function boot(){
   if(!SECS.some(s=>s[0]===S.sec))S.sec='resumen';
   if(LS.get('lock',null)){lockMode='check';showLock();const L=LS.get('lock');if(L.cred)setTimeout(()=>faceUnlock(true),300)}
   if(!CFG.url||!CFG.token){showSetup();return}
+  /* lo guardado se muestra solo si viene de un servidor que ya se identificó como el de esta app */
+  if(LS.get('srv','')!==hash(CFG.url)){S.data={};S.cfg={};LS.del('cache');LS.del('cachecfg')}
   await start()}
 addEventListener('online',flush);
 boot();

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-ug8b2fAr75doLD6aPLs10+vSGKwQazQCUOLbsb7tJds='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-vIfR4kt6QI8um5Vcn3K1AAuLxfTIL82vAos3QUrNHLQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -1169,7 +1169,7 @@ const TABLAS_IMP=['Cotizaciones','Saldos','Ingresos','Egresos','Recurrentes','Hi
 function upBig(t,rows){for(let i=0;i<rows.length;i+=500)upMany(t,rows.slice(i,i+500))}
 const nCuenta=n=>['Ingresos','Egresos','Recurrentes'].reduce((s,t)=>s+D(t).filter(r=>cuentaDe(r)===n).length,0);
 function atajoTxt(tabla){const c=cuentas()[0],hoy=todayISO();
-  const base={token:'TU_TOKEN',op:'upsert',table:tabla};
+  const base={app:APP_ID,token:'TU_TOKEN',op:'upsert',table:tabla};
   const row=tabla==='Egresos'
     ?{id:'atajo-'+hoy+' 14:03:22',cuenta:c.n,fecha:hoy,mes:hoy.slice(0,7),descripcion:'Café',categoria:'Gastos varios',moneda:c.m,monto:c.m==='ARS'?3500:4.5,venc:'',pagado:1,recurrente:0}
     :{id:'atajo-'+hoy+' 14:03:22',cuenta:c.n,fecha:hoy,mes:hoy.slice(0,7),descripcion:'Venta',categoria:'',moneda:c.m,monto:c.m==='ARS'?25000:47,oferta:'',mercado:'',origen:'manual',ref:''};

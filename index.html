@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-vIfR4kt6QI8um5Vcn3K1AAuLxfTIL82vAos3QUrNHLQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Zh8KUOakmroYgc/d5dNgJqJMH83b7VueWwx50yB6N70='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -504,8 +504,17 @@ const accN=()=>{const L=cuentas();return L.some(c=>c.n===S.acc)?S.acc:L[0].n};
 const accM=()=>(cuentas().find(c=>c.n===accN())||{}).m||'USD';
 const mainC=()=>accM().toLowerCase();
 const cuentaDe=r=>(r&&r.cuenta)||cuentas()[0].n;
-const ingAll=()=>D('Ingresos').filter(r=>cuentaDe(r)===accN());
-const egrAll=()=>D('Egresos').filter(r=>cuentaDe(r)===accN());
+/* InfoProductos no tiene movimientos propios: es la suma de ARS (tarjetas en Argentina) y YHWH Power (la LLC). Ahí se ve todo,
+   con la cuenta de origen marcada. ARS y YHWH Power nunca se mezclan entre sí.
+   Lo que quedó cargado con cuenta InfoProductos de la importación inicial: los egresos NO se suman (son los mismos gastos que ya están
+   en ARS y YHWH Power, pasados a dólares: sumarlos duplicaría todo); los ingresos y recurrentes sí se ven, porque no tienen copia. */
+const AGG='InfoProductos';
+const esAgg=()=>accN()===AGG;
+const tagCta=r=>esAgg()?cuentaDe(r):'';
+/* cuenta con la que se carga algo nuevo: la que estás viendo, o la primera real si estás en InfoProductos */
+const cuentaNueva=()=>esAgg()?((cuentas().find(c=>c.n!==AGG)||{}).n||AGG):accN();
+const ingAll=()=>esAgg()?D('Ingresos'):D('Ingresos').filter(r=>cuentaDe(r)===accN());
+const egrAll=()=>esAgg()?D('Egresos').filter(r=>cuentaDe(r)!==AGG):D('Egresos').filter(r=>cuentaDe(r)===accN());
 /* ===== cotización y conversión ===== */
 function cotOf(mes){const c=D('Cotizaciones');const r=c.find(x=>x.mes===mes);if(r&&+r.usd)return+r.usd;
   const s=c.filter(x=>+x.usd).sort((a,b)=>a.mes<b.mes?1:-1);const p=s.find(x=>x.mes<mes)||s[s.length-1];return p?+p.usd:1500}
@@ -558,7 +567,7 @@ const periodos=()=>{const p=cfg('periodos',null),L=Array.isArray(p)?p.filter(per
 const samePer=(a,b)=>a.k===b.k&&(a.n||0)===(b.n||0)&&(a.v||'')===(b.v||'')&&(a.from||'')===(b.from||'')&&(a.to||'')===(b.to||'');
 const perLabel=p=>p.k==='PERS'?'PERSONALIZADO':p.k==='T'?'TOTAL':p.k==='Y'||p.k==='H'||p.k==='D'||p.k==='M'||p.k==='R'?periodOf(p).label:'';
 /* ===== recurrentes ===== */
-const recAll=()=>D('Recurrentes').filter(r=>cuentaDe(r)===accN()&&Number(r.activo)!==0);
+const recAll=()=>D('Recurrentes').filter(r=>(esAgg()||cuentaDe(r)===accN())&&Number(r.activo)!==0);
 const recId=(r,mes)=>('rc-'+r.id+'-'+mes).slice(0,64);
 const recFecha=(r,mes)=>mes+'-'+String(Math.min(Math.max(+r.dia||1,1),diasMes(mes))).padStart(2,'0');
 const recFaltan=mes=>recAll().filter(r=>!D('Egresos').some(e=>e.id===recId(r,mes)));
@@ -762,21 +771,22 @@ function morph(root,html){const t=document.createElement('template');t.innerHTML
 const lim=(a,full,n=6)=>full?a:a.slice(0,n);
 const heroTitle=(pre,P)=>pre+' '+(P.mes?'DE '+P.title:'· '+P.title);
 function monthOpts(){const c=curMes();return mesesEntre(mesAdd(c,-30),mesAdd(c,12)).reverse().map(m=>({v:m,l:mesName(m)+' '+m.slice(0,4)}))}
-const cuentaOpts=()=>cuentas().map(c=>c.n);
+/* al cargar algo nuevo se elige ARS o YHWH Power; InfoProductos solo aparece si el movimiento ya estaba cargado ahí */
+const cuentaOpts=cur=>{const L=cuentas().map(c=>c.n).filter(n=>n!==AGG||n===cur);return L.length?L:[AGG]};
 const curOf=(cuenta)=>(cuentas().find(c=>c.n===cuenta)||{m:'USD'}).m;
 const uniq=a=>[...new Set(a.filter(Boolean))];
 /* ---- formularios ---- */
-function goCuenta(n){if(n&&n!==accN()){S.acc=n;LS.set('acc',n)}}
-function formIng(id){const r=id?D('Ingresos').find(x=>x.id===id):null;const acc=r?cuentaDe(r):accN();
+function goCuenta(n){if(esAgg())return;if(n&&n!==accN()){S.acc=n;LS.set('acc',n)}}
+function formIng(id){const r=id?D('Ingresos').find(x=>x.id===id):null;const acc=r?cuentaDe(r):cuentaNueva();
   form({title:r?'Editar ingreso':'Nuevo ingreso',fields:[
    {k:'descripcion',l:'Descripción',v:r&&r.descripcion,req:1,ph:'Ej: Venta Imperio Digital'},
    {k:'monto',l:'Monto',t:'number',v:r?r.monto:'',ph:'0',half:1},{k:'moneda',l:'Moneda',t:'select',opts:monedaOpts(curOf(acc)),v:r?r.moneda:curOf(acc),half:1},
    {k:'fecha',l:'Fecha',t:'date',v:r?r.fecha:todayISO(),req:1},
    {k:'oferta',l:'Oferta (opcional)',v:r&&r.oferta,list:uniq(D('Ingresos').map(x=>x.oferta)),half:1},{k:'mercado',l:'Mercado (opcional)',v:r&&r.mercado,list:uniq(D('Ingresos').map(x=>x.mercado)),half:1},
-   {k:'cuenta',l:'Cuenta',t:'select',opts:cuentaOpts(),v:acc}],
+   {k:'cuenta',l:'Cuenta',t:'select',opts:cuentaOpts(acc),v:acc}],
    onOk:o=>{goCuenta(o.cuenta);up('Ingresos',{id:r?r.id:uid(),cuenta:o.cuenta,fecha:o.fecha,mes:o.fecha.slice(0,7),descripcion:o.descripcion,categoria:r?r.categoria||'':'',moneda:o.moneda,monto:o.monto,oferta:o.oferta,mercado:o.mercado,origen:r?r.origen||'manual':'manual',ref:r?r.ref||'':''})},
    onDel:r?()=>del('Ingresos',r.id):null})}
-function formEgr(id,pre){const r=id?D('Egresos').find(x=>x.id===id):null;const acc=r?cuentaDe(r):accN();pre=pre||{};
+function formEgr(id,pre){const r=id?D('Egresos').find(x=>x.id===id):null;const acc=r?cuentaDe(r):cuentaNueva();pre=pre||{};
   form({title:r?'Editar egreso':'Nuevo egreso',fields:[
    {k:'descripcion',l:'Descripción',v:r&&r.descripcion,req:1,ph:'Ej: Claude | Max',list:uniq(egrAll().map(x=>x.descripcion)).slice(0,60)},
    {k:'monto',l:'Monto',t:'number',v:r?r.monto:'',ph:'0',half:1},{k:'moneda',l:'Moneda',t:'select',opts:monedaOpts(curOf(acc)),v:r?r.moneda:curOf(acc),half:1},
@@ -785,15 +795,15 @@ function formEgr(id,pre){const r=id?D('Egresos').find(x=>x.id===id):null;const a
    {k:'venc',l:'Vence (opcional)',t:'date',v:r?r.venc:(pre.venc||''),half:1,on:fm=>{const v=fm.elements.venc.value,p=fm.elements.pagado;if(p)p.checked=!v||v<=todayISO()}},
    {k:'pagado',l:'Ya está pagado',t:'check',v:r?isPaid(r):!pre.venc},
    {k:'recurrente',l:'Se repite todos los meses',t:'check',v:r?Number(r.recurrente)===1:!!pre.recurrente},
-   {k:'cuenta',l:'Cuenta',t:'select',opts:cuentaOpts(),v:acc}],
+   {k:'cuenta',l:'Cuenta',t:'select',opts:cuentaOpts(acc),v:acc}],
    onOk:o=>{goCuenta(o.cuenta);up('Egresos',{id:r?r.id:uid(),cuenta:o.cuenta,fecha:o.fecha,mes:o.fecha.slice(0,7),descripcion:o.descripcion,categoria:o.categoria||'',moneda:o.moneda,monto:o.monto,venc:o.venc||'',pagado:o.pagado,recurrente:o.recurrente})},
    onDel:r?()=>del('Egresos',r.id):null})}
-function formRec(id){const r=id?D('Recurrentes').find(x=>x.id===id):null;const acc=r?cuentaDe(r):accN();
+function formRec(id){const r=id?D('Recurrentes').find(x=>x.id===id):null;const acc=r?cuentaDe(r):cuentaNueva();
   form({title:r?'Editar recurrente':'Nuevo recurrente',fields:[
    {k:'descripcion',l:'Descripción',v:r&&r.descripcion,req:1,ph:'Ej: Google Workspace'},
    {k:'monto',l:'Monto',t:'number',v:r?r.monto:'',ph:'0',half:1},{k:'moneda',l:'Moneda',t:'select',opts:monedaOpts(curOf(acc)),v:r?r.moneda:curOf(acc),half:1},
    {k:'categoria',l:'Categoría',t:'cat',v:r?r.categoria:''},
-   {k:'dia',l:'Día del mes en que vence',t:'number',v:r?r.dia:'',ph:'Ej: 5',half:1},{k:'cuenta',l:'Cuenta',t:'select',opts:cuentaOpts(),v:acc,half:1},
+   {k:'dia',l:'Día del mes en que vence',t:'number',v:r?r.dia:'',ph:'Ej: 5',half:1},{k:'cuenta',l:'Cuenta',t:'select',opts:cuentaOpts(acc),v:acc,half:1},
    {k:'activo',l:'Activo (se carga todos los meses)',t:'check',v:r?Number(r.activo)!==0:1}],
    onOk:o=>{const dia=Math.round(o.dia);if(dia<0||dia>31){toast('El día va de 1 a 31');return false}goCuenta(o.cuenta);up('Recurrentes',{id:r?r.id:uid(),cuenta:o.cuenta,descripcion:o.descripcion,categoria:o.categoria||'',moneda:o.moneda,monto:o.monto,dia,activo:o.activo})},
    onDel:r?()=>del('Recurrentes',r.id):null})}
@@ -806,10 +816,10 @@ function formSaldo(id){const r=id?D('Saldos').find(x=>x.id===id):null;
    onOk:o=>{up('Saldos',{id:r?r.id:uid(),donde:o.donde,descripcion:o.descripcion,moneda:o.moneda,monto:o.monto,actualizado:todayISO()})},
    onDel:r?()=>del('Saldos',r.id):null})}
 /* ---- listas ---- */
-function rowIng(r){const sub=[r.oferta,r.mercado].filter(Boolean).join(' · ');
+function rowIng(r){const sub=[r.oferta,r.mercado,tagCta(r)].filter(Boolean).join(' · ');
   return `<div class="tr ig" data-rt="edIng" data-p="${esc(r.id)}"><span class="mut">${fmtFecha(r.fecha)}</span><span class="d2"><span class="d">${esc(r.descripcion)}</span>${sub?`<span class="d sm2">${esc(sub)}</span>`:''}</span><span class="r"><b>${AM(money(r.monto,r.moneda))}</b></span>${editDel('edIng','delIng',r.id)}</div>`}
 function rowEgr(e){const pd=isPaid(e);
-  return `<div class="tr te" data-rt="edEgr" data-p="${esc(e.id)}"><span class="c1">${chkB(pd,'pay',e.id)}</span><span class="d2"><span class="d${pd?' paid':''}">${esc(e.descripcion)}</span><span class="d sm2"><i class="dot" style="background:${catColor(e.categoria)}"></i>${fmtFecha(e.fecha)} · ${esc(e.categoria||SINCAT)}<span class="mo"> ${vencChip(e)}</span></span></span><span class="vc">${vencChip(e)}</span><span class="r"><b>${AM(money(e.monto,e.moneda||'USD'))}</b></span>${editDel('edEgr','delEgr',e.id)}</div>`}
+  return `<div class="tr te" data-rt="edEgr" data-p="${esc(e.id)}"><span class="c1">${chkB(pd,'pay',e.id)}</span><span class="d2"><span class="d${pd?' paid':''}">${esc(e.descripcion)}</span><span class="d sm2"><i class="dot" style="background:${catColor(e.categoria)}"></i>${fmtFecha(e.fecha)} · ${esc(e.categoria||SINCAT)}${esAgg()?' · '+esc(cuentaDe(e)):''}<span class="mo"> ${vencChip(e)}</span></span></span><span class="vc">${vencChip(e)}</span><span class="r"><b>${AM(money(e.monto,e.moneda||'USD'))}</b></span>${editDel('edEgr','delEgr',e.id)}</div>`}
 const egrHead=()=>`<div class="tr te th"><span class="c1"></span><span>Descripción</span><span class="vc">Vence</span><span class="r">Monto</span><span class="ed"></span></div>`;
 const moreRow=(tot,shown,wid,full)=>(!full&&wid&&tot>shown)?`<button class="morerow" data-a="more" data-p="${esc(wid)}">+${tot-shown} más ›</button>`:'';
 function egrTable(list,full,n,emptyMsg,wid){if(!list.length)return empty(emptyMsg||'Sin egresos en este período');
@@ -851,7 +861,7 @@ W.lIng=(full)=>{const L=ingresosP(PD());return `<div class="card">${hdr('Ingreso
 W.lEgr=(full)=>{const L=egresosP(PD());return `<div class="card">${hdr('Egresos',addBtn('addEgr','','Nuevo','wh'),'lEgr')}${egrTable(L,full,6,null,'lEgr')}</div>`};
 /* recurrentes: la lista de tus gastos de todos los meses y cuáles ya están cargados en el mes mostrado */
 W.rec=(full)=>{const P=PD(),mm=monthOfP(P),L=recAll().slice().sort((a,b)=>(+a.dia||99)-(+b.dia||99)),falt=recFaltan(mm).length,tot=sumV(L,r=>conv(r.monto,r.moneda,mm));
-  const row=r=>{const ya=D('Egresos').some(e=>e.id===recId(r,mm));return `<div class="tr rc" data-rt="edRec" data-p="${esc(r.id)}"><span class="mut">${r.dia?('día '+r.dia):'—'}</span><span class="d2"><span class="d">${esc(r.descripcion)}</span><span class="d sm2"><i class="dot" style="background:${catColor(r.categoria)}"></i>${esc(r.categoria||SINCAT)} ${ya?'<span class="chip">CARGADO</span>':'<span class="chip w">FALTA</span>'}</span></span><span class="r"><b>${AM(money(r.monto,r.moneda))}</b></span>${editDel('edRec','delRec',r.id)}</div>`};
+  const row=r=>{const ya=D('Egresos').some(e=>e.id===recId(r,mm));return `<div class="tr rc" data-rt="edRec" data-p="${esc(r.id)}"><span class="mut">${r.dia?('día '+r.dia):'—'}</span><span class="d2"><span class="d">${esc(r.descripcion)}</span><span class="d sm2"><i class="dot" style="background:${catColor(r.categoria)}"></i>${esc(r.categoria||SINCAT)}${esAgg()?' · '+esc(cuentaDe(r)):''} ${ya?'<span class="chip">CARGADO</span>':'<span class="chip w">FALTA</span>'}</span></span><span class="r"><b>${AM(money(r.monto,r.moneda))}</b></span>${editDel('edRec','delRec',r.id)}</div>`};
   return `<div class="card">${hdr('Recurrentes',addBtn('addRec','','Nuevo','wh'),'rec')}${L.length?`<small>${L.length} gastos que se repiten · ${falt?falt+' sin cargar en '+mesName(mm):'todos cargados en '+mesName(mm)}</small><div class="tb">${lim(L,full,6).map(row).join('')}<div class="tr tot" style="--c:1fr auto"><span>POR MES</span><span class="r">${AA(tot)}</span></div></div>${moreRow(L.length,6,'rec',full)}${falt?`<div class="acts" style="justify-content:flex-start"><button class="btn wh" data-a="cargarRec" data-p="${mm}">${I('repeat')}Cargar los que faltan en ${mesName(mm)} (${falt})</button></div>`:''}`:empty('Todavía no cargaste gastos que se repiten (Google Workspace, Claude, etc.)',`<div style="margin-top:10px">${addBtn('addRec','','Agregar el primero','wh')}</div>`)}</div>`};
 W.saR=()=>{const a=totalSaldos();return `<div class="card">${hdr('Saldos',eyeBtn('saR'),'')}${BIG(a,'saR',null,'mid')}<div class="sub">${AS(a)||D('Saldos').length+' cuentas'}</div><div style="margin-top:12px"><button class="more" data-a="go" data-p="saldos">Ver más ›</button></div></div>`};
 W.deR=()=>{const t=sumV(deudasAct(),d=>vDeu(d,'monto_actual'));return `<div class="card">${hdr('Préstamos y deudas',eyeBtn('deR'))}${BIG(t,'deR',null,'mid')}<div class="sub">${AS(t)}</div><div style="margin-top:12px"><button class="more" data-a="go" data-p="deudas">Ver más ›</button></div></div>`};
@@ -1168,7 +1178,7 @@ const TABLAS_IMP=['Cotizaciones','Saldos','Ingresos','Egresos','Recurrentes','Hi
 /* cambios en muchas filas: el servidor acepta hasta 600 operaciones por envío */
 function upBig(t,rows){for(let i=0;i<rows.length;i+=500)upMany(t,rows.slice(i,i+500))}
 const nCuenta=n=>['Ingresos','Egresos','Recurrentes'].reduce((s,t)=>s+D(t).filter(r=>cuentaDe(r)===n).length,0);
-function atajoTxt(tabla){const c=cuentas()[0],hoy=todayISO();
+function atajoTxt(tabla){const c=cuentas().find(x=>x.n!==AGG)||cuentas()[0],hoy=todayISO();
   const base={app:APP_ID,token:'TU_TOKEN',op:'upsert',table:tabla};
   const row=tabla==='Egresos'
     ?{id:'atajo-'+hoy+' 14:03:22',cuenta:c.n,fecha:hoy,mes:hoy.slice(0,7),descripcion:'Café',categoria:'Gastos varios',moneda:c.m,monto:c.m==='ARS'?3500:4.5,venc:'',pagado:1,recurrente:0}
@@ -1222,6 +1232,7 @@ ACT2.editCuentas=()=>{let L=cuentas().map(c=>({n:c.n,o:c.n,m:c.m}));
     $('[data-x]',m).onclick=closeModal;
     $('[data-ok]',m).onclick=()=>{sync();const names=L.map(c=>c.n);
       if(names.some(n=>!n)){toast('Poné nombre a todas las cuentas');return}
+      if(!names.includes(AGG)){toast('“'+AGG+'” tiene que seguir: es la suma de las otras cuentas');return}
       if(new Set(names.map(n=>n.toLowerCase())).size!==names.length){toast('Dos cuentas no pueden llamarse igual');return}
       const mp={};L.forEach(c=>{if(c.o&&c.o!==c.n)mp[c.o]=c.n});
       if(Object.keys(mp).length){['Ingresos','Egresos','Recurrentes'].forEach(t=>{const rows=D(t).filter(r=>mp[cuentaDe(r)]).map(r=>({[KEY[t]]:r[KEY[t]],cuenta:mp[cuentaDe(r)]}));upBig(t,rows)});

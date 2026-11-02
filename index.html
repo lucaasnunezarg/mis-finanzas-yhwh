@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Zh8KUOakmroYgc/d5dNgJqJMH83b7VueWwx50yB6N70='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-J4/DTquz4DDAMyDM7RqsT8e43VqnhBkFoY3FFhgZYU4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -513,6 +513,9 @@ const esAgg=()=>accN()===AGG;
 const tagCta=r=>esAgg()?cuentaDe(r):'';
 /* cuenta con la que se carga algo nuevo: la que estás viendo, o la primera real si estás en InfoProductos */
 const cuentaNueva=()=>esAgg()?((cuentas().find(c=>c.n!==AGG)||{}).n||AGG):accN();
+/* lo que se genera solo (recurrentes, duplicar mes) nunca queda en la cuenta InfoProductos, que es la suma y no muestra egresos propios:
+   un recurrente de la cuenta vieja pasa a la cuenta real de su moneda (dólares a YHWH Power, pesos a ARS) */
+const cuentaReal=r=>{const c=cuentaDe(r);if(c!==AGG)return c;const m=r.moneda==='ARS'?'ARS':'USD',L=cuentas().filter(x=>x.n!==AGG);return(L.find(x=>x.m===m)||L[0]||{n:AGG}).n};
 const ingAll=()=>esAgg()?D('Ingresos'):D('Ingresos').filter(r=>cuentaDe(r)===accN());
 const egrAll=()=>esAgg()?D('Egresos').filter(r=>cuentaDe(r)!==AGG):D('Egresos').filter(r=>cuentaDe(r)===accN());
 /* ===== cotización y conversión ===== */
@@ -1050,7 +1053,7 @@ function setPerMonth(m){const ps=periodos().slice();if(!ps.some(p=>p.k==='M'&&p.
 ACT.cargarRec=mes=>{mes=mes||monthOfP(PD());const falt=recFaltan(mes);
   if(!recAll().length){toast('Primero agregá tus recurrentes');return}
   if(!falt.length){toast('Ya están todos cargados en '+mesName(mes));return}
-  upMany('Egresos',falt.map(r=>({id:recId(r,mes),cuenta:cuentaDe(r),fecha:recFecha(r,mes),mes,descripcion:r.descripcion,categoria:r.categoria||'',moneda:r.moneda,monto:r.monto,venc:recFecha(r,mes),pagado:0,recurrente:1})));
+  upMany('Egresos',falt.map(r=>({id:recId(r,mes),cuenta:cuentaReal(r),fecha:recFecha(r,mes),mes,descripcion:r.descripcion,categoria:r.categoria||'',moneda:r.moneda,monto:r.monto,venc:recFecha(r,mes),pagado:0,recurrente:1})));
   setPerMonth(mes);render();toast(falt.length===1?'Se cargó 1 recurrente en '+mesName(mes):'Se cargaron '+falt.length+' recurrentes en '+mesName(mes))};
 /* Duplicar mes: copia los egresos de un mes a otro, sin pagar y con el vencimiento corrido. Lo que ya está en el destino no se repite */
 ACT.dupMes=()=>{const P=PD(),src=monthOfP(P),opts=monthOpts();const todos=egrAll().filter(e=>mesDe(e)===src);
@@ -1062,7 +1065,7 @@ ACT.dupMes=()=>{const P=PD(),src=monthOfP(P),opts=monthOpts();const todos=egrAll
     const nuevos=[];
     L.forEach(e=>{const k=egrKey(e);if(have[k]>0){have[k]--;return}
       const mv=(f)=>{if(!f)return '';const d=Math.min(+f.slice(8,10),diasMes(o.to));return o.to+'-'+String(d).padStart(2,'0')};
-      nuevos.push({id:uid(),cuenta:cuentaDe(e),mes:o.to,fecha:mv(e.fecha)||o.to+'-01',descripcion:e.descripcion,categoria:e.categoria||'',moneda:e.moneda,monto:e.monto,venc:mv(e.venc||e.fecha),pagado:0,recurrente:Number(e.recurrente)===1?1:0})});
+      nuevos.push({id:uid(),cuenta:cuentaReal(e),mes:o.to,fecha:mv(e.fecha)||o.to+'-01',descripcion:e.descripcion,categoria:e.categoria||'',moneda:e.moneda,monto:e.monto,venc:mv(e.venc||e.fecha),pagado:0,recurrente:Number(e.recurrente)===1?1:0})});
     const ya=L.length-nuevos.length;
     upMany('Egresos',nuevos);setPerMonth(o.to);render();
     toast(nuevos.length?(nuevos.length===1?'Se agregó 1 egreso':'Se agregaron '+nuevos.length+' egresos')+' a '+mesName(o.to)+(ya?'. '+(ya===1?'1 ya estaba':ya+' ya estaban'):''):L.length?'Todos ya estaban en '+mesName(o.to):'No hay egresos para copiar')}})};

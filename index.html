@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-nmPNV6Xw4UrtDMhxegS/AyOJ68En2is3BG9eQIHK/74='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-A0Zmj/IlRG15PBPRC8jK/K+9lZFDfqO+ELcXISNvOAA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -403,7 +403,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelecto
 /* github.io comparte el almacenamiento entre todas las apps del mismo usuario: las claves de esta llevan prefijo para no mezclarse con otras */
 const NS='yhwh.';
 /* se cambia en cada publicación: Ajustes lo muestra para saber qué versión tiene cada dispositivo */
-const VERSION='v3 · 2 nov 2026 · InfoProductos suma ARS y YHWH Power';
+const VERSION='v4 · 2 nov 2026 · Cargar desde una foto';
 const LS={get(k,d){try{const v=localStorage.getItem(NS+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(NS+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(NS+k)}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf0=new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}),nf2=new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -518,6 +518,8 @@ const cuentaNueva=()=>esAgg()?((cuentas().find(c=>c.n!==AGG)||{}).n||AGG):accN()
 /* lo que se genera solo (recurrentes, duplicar mes) nunca queda en la cuenta InfoProductos, que es la suma y no muestra egresos propios:
    un recurrente de la cuenta vieja pasa a la cuenta real de su moneda (dólares a YHWH Power, pesos a ARS) */
 const cuentaReal=r=>{const c=cuentaDe(r);if(c!==AGG)return c;const m=r.moneda==='ARS'?'ARS':'USD',L=cuentas().filter(x=>x.n!==AGG);return(L.find(x=>x.m===m)||L[0]||{n:AGG}).n};
+/* la cuenta de algo leído de una foto: la que estás viendo; si estás en InfoProductos, la real que usa esa moneda */
+const cuentaPorMoneda=m=>esAgg()?((cuentas().find(x=>x.n!==AGG&&x.m===m)||{}).n||cuentaNueva()):cuentaNueva();
 const ingAll=()=>esAgg()?D('Ingresos'):D('Ingresos').filter(r=>cuentaDe(r)===accN());
 const egrAll=()=>esAgg()?D('Egresos').filter(r=>cuentaDe(r)!==AGG):D('Egresos').filter(r=>cuentaDe(r)===accN());
 /* ===== cotización y conversión ===== */
@@ -614,6 +616,7 @@ mas:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx
 copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/>',
 dup:'<rect x="3" y="7" width="13" height="13" rx="2"/><path d="M8 3h11a2 2 0 012 2v11"/>',
 repeat:'<path d="M17 3l4 4-4 4M3 11V9a2 2 0 012-2h16M7 21l-4-4 4-4M21 13v2a2 2 0 01-2 2H3"/>',
+camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
 pay:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h3"/>'};
 const I=(n,w)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${w?` width="${w}" height="${w}"`:''}>${P_[n]||''}</svg>`;
 /* ===== toast / modal ===== */
@@ -726,7 +729,7 @@ function lineSvg(a,b,w,h,area){if(!a.length)return '<div class="empty">Sin datos
   let o=`<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img">${GR}`;
   for(let k=0;k<4;k++){const yy=top+(h-top-bot)*k/3;o+=`<line x1="${pad}" x2="${w-pad}" y1="${yy}" y2="${yy}" stroke="#1b1b3a"/>`}
   if(n>1&&area)o+=`<path class="area" d="${path(a)}L${x(n-1)} ${h-bot}L${x(0)} ${h-bot}Z" fill="url(#ga)"/>`;
-  if(b&&b.length>1)o+=`<path class="ln2" pathLength="1" d="${path(b)}" fill="none" stroke="#9a9ab0" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>`;
+  if(b&&b.length>1)o+=`<path class="ln2" d="${path(b)}" fill="none" stroke="#9a9ab0" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>`;
   if(n>1)o+=`<path class="ln1" pathLength="1" d="${path(a)}" fill="none" stroke="#8c8cff" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`;
   const dots=n<=40;
   a.forEach((p,i)=>{if(dots)o+=`<circle class="dt" style="--i:${Math.min(i,30)}" data-tip="${esc(p.tip||p.label)}" cx="${x(i)}" cy="${y(p.v)}" r="4.5" fill="#0e0e11" stroke="#8c8cff" stroke-width="2.4"/>`});
@@ -782,26 +785,28 @@ const curOf=(cuenta)=>(cuentas().find(c=>c.n===cuenta)||{m:'USD'}).m;
 const uniq=a=>[...new Set(a.filter(Boolean))];
 /* ---- formularios ---- */
 function goCuenta(n){if(esAgg())return;if(n&&n!==accN()){S.acc=n;LS.set('acc',n)}}
-function formIng(id){const r=id?D('Ingresos').find(x=>x.id===id):null;const acc=r?cuentaDe(r):cuentaNueva();
+/* aviso que acompaña a un formulario completado desde una foto */
+const avisoFoto=pre=>pre&&pre.aviso?`<small style="display:block;margin:2px 0 10px;color:var(--mut2)">${esc(pre.aviso)}</small>`:'';
+function formIng(id,pre){const r=id?D('Ingresos').find(x=>x.id===id):null;pre=pre||{};const acc=r?cuentaDe(r):(pre.cuenta||cuentaNueva());
   form({title:r?'Editar ingreso':'Nuevo ingreso',fields:[
-   {k:'descripcion',l:'Descripción',v:r&&r.descripcion,req:1,ph:'Ej: Venta Imperio Digital'},
-   {k:'monto',l:'Monto',t:'number',v:r?r.monto:'',ph:'0',half:1},{k:'moneda',l:'Moneda',t:'select',opts:monedaOpts(curOf(acc)),v:r?r.moneda:curOf(acc),half:1},
-   {k:'fecha',l:'Fecha',t:'date',v:r?r.fecha:todayISO(),req:1},
+   {k:'descripcion',l:'Descripción',v:r?r.descripcion:pre.descripcion,req:1,ph:'Ej: Venta Imperio Digital'},
+   {k:'monto',l:'Monto',t:'number',v:r?r.monto:(pre.monto||''),ph:'0',half:1},{k:'moneda',l:'Moneda',t:'select',opts:monedaOpts(curOf(acc)),v:r?r.moneda:(pre.moneda||curOf(acc)),half:1},
+   {k:'fecha',l:'Fecha',t:'date',v:r?r.fecha:(pre.fecha||todayISO()),req:1},
    {k:'oferta',l:'Oferta (opcional)',v:r&&r.oferta,list:uniq(D('Ingresos').map(x=>x.oferta)),half:1},{k:'mercado',l:'Mercado (opcional)',v:r&&r.mercado,list:uniq(D('Ingresos').map(x=>x.mercado)),half:1},
    {k:'cuenta',l:'Cuenta',t:'select',opts:cuentaOpts(acc),v:acc}],
-   onOk:o=>{goCuenta(o.cuenta);up('Ingresos',{id:r?r.id:uid(),cuenta:o.cuenta,fecha:o.fecha,mes:o.fecha.slice(0,7),descripcion:o.descripcion,categoria:r?r.categoria||'':'',moneda:o.moneda,monto:o.monto,oferta:o.oferta,mercado:o.mercado,origen:r?r.origen||'manual':'manual',ref:r?r.ref||'':''})},
+   extra:avisoFoto(pre),onOk:o=>{goCuenta(o.cuenta);up('Ingresos',{id:r?r.id:uid(),cuenta:o.cuenta,fecha:o.fecha,mes:o.fecha.slice(0,7),descripcion:o.descripcion,categoria:r?r.categoria||'':'',moneda:o.moneda,monto:o.monto,oferta:o.oferta,mercado:o.mercado,origen:r?r.origen||'manual':'manual',ref:r?r.ref||'':''})},
    onDel:r?()=>del('Ingresos',r.id):null})}
-function formEgr(id,pre){const r=id?D('Egresos').find(x=>x.id===id):null;const acc=r?cuentaDe(r):cuentaNueva();pre=pre||{};
+function formEgr(id,pre){const r=id?D('Egresos').find(x=>x.id===id):null;pre=pre||{};const acc=r?cuentaDe(r):(pre.cuenta||cuentaNueva());
   form({title:r?'Editar egreso':'Nuevo egreso',fields:[
-   {k:'descripcion',l:'Descripción',v:r&&r.descripcion,req:1,ph:'Ej: Claude | Max',list:uniq(egrAll().map(x=>x.descripcion)).slice(0,60)},
-   {k:'monto',l:'Monto',t:'number',v:r?r.monto:'',ph:'0',half:1},{k:'moneda',l:'Moneda',t:'select',opts:monedaOpts(curOf(acc)),v:r?r.moneda:curOf(acc),half:1},
-   {k:'categoria',l:'Categoría',t:'cat',v:r?r.categoria:''},
+   {k:'descripcion',l:'Descripción',v:r?r.descripcion:pre.descripcion,req:1,ph:'Ej: Claude | Max',list:uniq(egrAll().map(x=>x.descripcion)).slice(0,60)},
+   {k:'monto',l:'Monto',t:'number',v:r?r.monto:(pre.monto||''),ph:'0',half:1},{k:'moneda',l:'Moneda',t:'select',opts:monedaOpts(curOf(acc)),v:r?r.moneda:(pre.moneda||curOf(acc)),half:1},
+   {k:'categoria',l:'Categoría',t:'cat',v:r?r.categoria:(pre.categoria||'')},
    {k:'fecha',l:'Fecha',t:'date',v:r?r.fecha:(pre.fecha||todayISO()),req:1,half:1},
    {k:'venc',l:'Vence (opcional)',t:'date',v:r?r.venc:(pre.venc||''),half:1,on:fm=>{const v=fm.elements.venc.value,p=fm.elements.pagado;if(p)p.checked=!v||v<=todayISO()}},
    {k:'pagado',l:'Ya está pagado',t:'check',v:r?isPaid(r):!pre.venc},
    {k:'recurrente',l:'Se repite todos los meses',t:'check',v:r?Number(r.recurrente)===1:!!pre.recurrente},
    {k:'cuenta',l:'Cuenta',t:'select',opts:cuentaOpts(acc),v:acc}],
-   onOk:o=>{goCuenta(o.cuenta);up('Egresos',{id:r?r.id:uid(),cuenta:o.cuenta,fecha:o.fecha,mes:o.fecha.slice(0,7),descripcion:o.descripcion,categoria:o.categoria||'',moneda:o.moneda,monto:o.monto,venc:o.venc||'',pagado:o.pagado,recurrente:o.recurrente})},
+   extra:avisoFoto(pre),onOk:o=>{goCuenta(o.cuenta);up('Egresos',{id:r?r.id:uid(),cuenta:o.cuenta,fecha:o.fecha,mes:o.fecha.slice(0,7),descripcion:o.descripcion,categoria:o.categoria||'',moneda:o.moneda,monto:o.monto,venc:o.venc||'',pagado:o.pagado,recurrente:o.recurrente})},
    onDel:r?()=>del('Egresos',r.id):null})}
 function formRec(id){const r=id?D('Recurrentes').find(x=>x.id===id):null;const acc=r?cuentaDe(r):cuentaNueva();
   form({title:r?'Editar recurrente':'Nuevo recurrente',fields:[
@@ -1164,8 +1169,8 @@ function persModal(){const hoy=todayISO();
   $('#psave',m).onclick=()=>{const f=$('#pf').value,t=$('#pt').value,l=$('#pl').value.trim();if(!f||!t||f>t){toast('Revisá las fechas');return}const p={k:'R',from:f,to:t,label:(l||fmtFecha(f)+'–'+fmtFecha(t)).toUpperCase()};
     const ps=periodos().filter(x=>x.k!=='PERS');setCfg('periodos',[...ps,p,{k:'PERS'}],true);S.per=p;LS.set('per',p);closeModal();render()}}
 /* botón + : cargar lo más usado desde cualquier pantalla */
-const FAB_ITEMS={egresos:['addEgr','Nuevo egreso','egresos'],ingresos:['addIng','Nuevo ingreso','ingresos'],rec:['cargarRec','Cargar recurrentes','repeat'],dup:['dupMes','Duplicar mes','dup'],pago:['payDeu','Registrar pago de deuda','pay'],saldo:['addSaldo','Nuevo saldo','saldos']};
-const FAB_ORDER={resumen:['egresos','ingresos','rec','saldo'],ingresos:['ingresos','egresos'],egresos:['egresos','rec','dup','ingresos'],saldos:['saldo','egresos','ingresos'],deudas:['pago','egresos','ingresos']};
+const FAB_ITEMS={egresos:['addEgr','Nuevo egreso','egresos'],ingresos:['addIng','Nuevo ingreso','ingresos'],rec:['cargarRec','Cargar recurrentes','repeat'],dup:['dupMes','Duplicar mes','dup'],foto:['foto','Cargar desde una foto','camera'],pago:['payDeu','Registrar pago de deuda','pay'],saldo:['addSaldo','Nuevo saldo','saldos']};
+const FAB_ORDER={resumen:['egresos','ingresos','foto','rec','saldo'],ingresos:['ingresos','foto','egresos'],egresos:['egresos','foto','rec','dup','ingresos'],saldos:['saldo','egresos','ingresos'],deudas:['pago','egresos','ingresos']};
 function closeFab(){document.body.classList.remove('fab-open')}
 ACT.fab=()=>{const b=document.body;if(b.classList.contains('fab-open')){closeFab();return}
   const o=(FAB_ORDER[S.sec]||FAB_ORDER.resumen).map(k=>FAB_ITEMS[k]);
@@ -1218,7 +1223,8 @@ function settingsHTML(){const L=LS.get('lock',null);const host=(()=>{try{return 
   <div class="card"><div class="sec"><h3>Pantallas</h3><div class="ln"><span>Restablecer el orden y tamaño de todas las tarjetas de este dispositivo</span><button class="btn dg" data-a="resetAll">Restablecer</button></div></div></div></div>`}
 document.addEventListener('change',e=>{const t=e.target;
   if(t.dataset&&t.dataset.a==='lockTime'){const L=LS.get('lock',null);if(L){L.t=+t.value;LS.set('lock',L);toast('Listo')}}
-  if(t.id==='impf'&&t.files[0]){importFile(t.files[0]);t.value=''}});
+  if(t.id==='impf'&&t.files[0]){importFile(t.files[0]);t.value=''}
+  if(t.id==='fotof'&&t.files[0]){fotoFile(t.files[0]);t.value=''}});
 ACT2.syncNow=async()=>{toast('Sincronizando…');await load();render();if(S.live)toast('Listo')};
 ACT2.reconnect=()=>showSetup();
 /* fuerza la versión más nueva: borra solo lo propio de esta app (service worker y caché yhwh-) y recarga. No toca la conexión ni los datos */
@@ -1266,6 +1272,39 @@ async function importFile(f){try{
     const L=cc.filter(x=>x&&typeof x==='object'&&typeof x.n==='string'&&x.n.trim()).slice(0,60).map(x=>({n:x.n.replace(/[\u0000-\u001f]/g,'').trim().slice(0,40),c:hexOk(x.c)}));
     if(L.length){const r=await apiPost({op:'config',key:'cats',value:L});if(!r.ok)throw new Error(r.error)}}
   await load();render();toast('Importado: '+n+' registros nuevos'+(rech?' ('+rech+' filas con datos inválidos se saltearon)':''))}catch(e){toast('No se pudo importar: '+e.message)}}
+
+/* ===== cargar desde una foto: la IA propone, vos confirmás ===== */
+/* la foto se achica en el dispositivo (1280 px, JPEG) antes de salir; el servidor la manda a la IA y no la guarda */
+ACT.foto=()=>modal(`<h2>Cargar desde una foto</h2><small>Sacale una foto a un ticket, factura o comprobante, o elegí una captura. La IA lee el monto, la moneda y el detalle y te abre el formulario ya completado: lo revisás y recién ahí lo guardás. La foto no se guarda en ningún lado.</small>
+ <div class="acts" style="margin-top:14px"><button class="btn" data-a="closeM">Cancelar</button><label class="btn wh" style="cursor:pointer">${I('camera')}Sacar o elegir foto<input type="file" id="fotof" accept="image/*" style="display:none"></label></div><small id="fotomsg" style="display:block;margin-top:10px"></small>`);
+const FOTO_PX=1280,FOTO_B64=700000;
+function fotoAJpeg(f){return new Promise((res,rej)=>{
+  if(!/^image\//.test(f.type||''))return rej(new Error('tiene que ser una imagen'));
+  if(f.size>25*1024*1024)return rej(new Error('la imagen pesa más de 25 MB'));
+  const fr=new FileReader();fr.onerror=()=>rej(new Error('no pude leer la imagen'));
+  fr.onload=()=>{const im=new Image();im.onerror=()=>rej(new Error('no pude abrir la imagen'));
+    im.onload=()=>{const k=Math.min(1,FOTO_PX/Math.max(im.naturalWidth,im.naturalHeight)),w=Math.max(1,Math.round(im.naturalWidth*k)),h=Math.max(1,Math.round(im.naturalHeight*k));
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);
+      let q=.78,d=cv.toDataURL('image/jpeg',q);while(d.length>FOTO_B64&&q>.35){q-=.1;d=cv.toDataURL('image/jpeg',q)}
+      if(d.length>FOTO_B64)return rej(new Error('la imagen es demasiado grande'));
+      res(d.slice(d.indexOf(',')+1))};
+    im.src=fr.result};
+  fr.readAsDataURL(f)})}
+async function fotoFile(f){const say=t=>{const m=$('#fotomsg');if(m)m.textContent=t};
+  try{say('Preparando la foto…');const img=await fotoAJpeg(f);
+    if(!await verificar())throw new Error('no pude confirmar que el servidor sea el de esta app');
+    say('Leyendo la foto con IA… puede tardar unos segundos');
+    const r=await apiPost({op:'foto',imagen:img,tipo_img:'image/jpeg',cats:cats().map(c=>c.n)});
+    if(esOtra(r)){otraApp();return}
+    if(r.error==='op desconocida')throw new Error('el servidor todavía no tiene esta función: falta publicar la versión nueva del servidor (Apps Script)');
+    if(!r.ok||!r.propuesta)throw new Error(r.error||'no se pudo leer la foto');
+    closeModal();setTimeout(()=>fotoForm(r.propuesta),260)}
+  catch(e){say('No se pudo: '+e.message)}}
+/* lo que vuelve del servidor se revisa de nuevo y solo completa el formulario: no se guarda nada hasta que tocás Guardar */
+function fotoForm(p){const mon=p.moneda==='ARS'||p.moneda==='USD'?p.moneda:'',f=String(p.fecha||''),conf={alta:'confianza alta',baja:'confianza baja, revisalo bien'}[p.confianza]||'confianza media';
+  const pre={descripcion:String(p.descripcion||'').slice(0,80),monto:+p.monto>0?+p.monto:'',moneda:mon,fecha:RE_F.test(f)&&f<=todayISO()?f:'',categoria:cats().some(c=>c.n===p.categoria)?p.categoria:'',cuenta:mon?cuentaPorMoneda(mon):'',
+    aviso:'Leído de la foto ('+conf+'). Revisá todo antes de guardar.'+(p.nota?' '+String(p.nota).slice(0,100):'')};
+  if(p.tipo==='ingreso')formIng(null,pre);else formEgr(null,pre)}
 
 /* ===== bloqueo (PIN + Face ID) ===== */
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}

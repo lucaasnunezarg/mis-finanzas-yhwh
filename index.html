@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-J4/DTquz4DDAMyDM7RqsT8e43VqnhBkFoY3FFhgZYU4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-nmPNV6Xw4UrtDMhxegS/AyOJ68En2is3BG9eQIHK/74='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -402,6 +402,8 @@ if(window.top!==window.self){document.documentElement.style.display='none';try{w
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 /* github.io comparte el almacenamiento entre todas las apps del mismo usuario: las claves de esta llevan prefijo para no mezclarse con otras */
 const NS='yhwh.';
+/* se cambia en cada publicación: Ajustes lo muestra para saber qué versión tiene cada dispositivo */
+const VERSION='v3 · 2 nov 2026 · InfoProductos suma ARS y YHWH Power';
 const LS={get(k,d){try{const v=localStorage.getItem(NS+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(NS+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(NS+k)}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf0=new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}),nf2=new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -1192,6 +1194,7 @@ function settingsHTML(){const L=LS.get('lock',null);const host=(()=>{try{return 
   const cu=cuentas();
   return `<div id="settings">
   <div class="card"><div class="sec"><h3>Conexión</h3><div class="ln"><span>Servidor de Google<small>${S.live?'Conectado':'Sin conexión, mostrando datos guardados'} · ${esc(host)}</small></span><button class="btn" data-a="syncNow">Sincronizar</button></div>
+   <div class="ln"><span>Versión de la app<small>${esc(VERSION)}</small></span><button class="btn" data-a="updateApp">Actualizar</button></div>
    <div class="ln"><span>Cambiar la conexión<small>URL y token de tu Apps Script</small></span><button class="btn" data-a="reconnect">Cambiar</button></div>
    <div class="ln"><span>Cerrar sesión en este dispositivo<small>Borra la URL, el token y los datos guardados acá. Lo tuyo sigue en la planilla.</small></span><button class="btn dg" data-a="disconnect">Cerrar</button></div></div></div>
   <div class="card"><div class="sec"><h3>Seguridad</h3><div class="ln"><span>Bloqueo de la app<small>${L?'Activo'+(L.cred?' con Face ID y PIN':' con PIN'):'Desactivado'}</small></span>${L?'<button class="btn dg" data-a="lockOff">Quitar</button>':'<button class="btn wh" data-a="lockOn">Activar</button>'}</div>
@@ -1218,6 +1221,10 @@ document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='impf'&&t.files[0]){importFile(t.files[0]);t.value=''}});
 ACT2.syncNow=async()=>{toast('Sincronizando…');await load();render();if(S.live)toast('Listo')};
 ACT2.reconnect=()=>showSetup();
+/* fuerza la versión más nueva: borra solo lo propio de esta app (service worker y caché yhwh-) y recarga. No toca la conexión ni los datos */
+ACT2.updateApp=async()=>{toast('Actualizando…');try{if('serviceWorker' in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()))}
+  if(window.caches){const ks=await caches.keys();await Promise.all(ks.filter(k=>k.startsWith('yhwh-')).map(k=>caches.delete(k)))}}catch(e){}
+  location.reload()};
 ACT2.disconnect=()=>ask('¿Cerrar sesión en este dispositivo? Tus datos siguen en la planilla.','Cerrar sesión',()=>{['url','token','srv','cache','cachecfg','queue','lock','lockfail','sec','per','cur','acc','hid','hideall'].forEach(LS.del);location.reload()});
 ACT2.exportar=()=>{const b=new Blob([JSON.stringify({data:S.data,config:S.cfg},null,1)],{type:'application/json'});const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='mis-finanzas-'+todayISO()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast('Descargando copia de seguridad')};
 ACT2.resetAll=()=>ask('¿Restablecer el orden y tamaño de todas las tarjetas de este dispositivo?','Restablecer',()=>{setCfg('layout_'+dev(),{});toast('Listo')},'wh');

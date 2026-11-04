@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-A0Zmj/IlRG15PBPRC8jK/K+9lZFDfqO+ELcXISNvOAA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Jl1g5+ZkLPJ2j4HxNI2thfUIjQasJQAUHDJ9Dq0iCRw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -17,7 +17,8 @@ html{background:var(--bg)}
 html::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:var(--fx)}
 html,body{color:var(--txt);font:14px/1.4 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{min-height:100vh;overflow-x:hidden;position:relative;z-index:1;background:transparent}
-body.modal-open{overflow:hidden}
+body.modal-open{position:fixed;left:0;right:0;width:100%;overflow:hidden}
+#modal{overscroll-behavior:contain}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 input,select,textarea{font:inherit;color:var(--txt);background:#09090f;border:1px solid #2a2a70;border-radius:12px;padding:10px 12px;width:100%;outline:none;transition:border-color .18s,box-shadow .18s,background .18s}
 input:focus,select:focus,textarea:focus{border-color:var(--blue2);box-shadow:0 0 0 3px #1F1EBA55}
@@ -403,7 +404,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelecto
 /* github.io comparte el almacenamiento entre todas las apps del mismo usuario: las claves de esta llevan prefijo para no mezclarse con otras */
 const NS='yhwh.';
 /* se cambia en cada publicación: Ajustes lo muestra para saber qué versión tiene cada dispositivo */
-const VERSION='v4 · 2 nov 2026 · Cargar desde una foto';
+const VERSION='v5 · 4 nov 2026 · Paneles que bloquean el fondo';
 const LS={get(k,d){try{const v=localStorage.getItem(NS+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(NS+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(NS+k)}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf0=new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}),nf2=new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -621,11 +622,14 @@ pay:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h3"/
 const I=(n,w)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${w?` width="${w}" height="${w}"`:''}>${P_[n]||''}</svg>`;
 /* ===== toast / modal ===== */
 let tt;function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),2800)}
-let MODAL_CB=null,MORE=null,MORE_BACK=null,closeT=null;
+let MODAL_CB=null,MORE=null,MORE_BACK=null,closeT=null,LOCKY=0;
+/* con un panel abierto el fondo queda clavado: ni se mueve ni se toca (en el celular overflow:hidden no alcanza, hay que fijar el body) */
+function lockBody(){const b=document.body;if(b.classList.contains('modal-open'))return;LOCKY=window.scrollY;b.style.top=-LOCKY+'px';b.classList.add('modal-open')}
+function unlockBody(){const b=document.body;if(!b.classList.contains('modal-open'))return;b.classList.remove('modal-open');b.style.top='';window.scrollTo(0,LOCKY)}
 function modal(html,wide){const m=$('#modal');clearTimeout(closeT);m.classList.remove('closing');
-  m.innerHTML=`<div class="sheet${wide?' wide':''}"><div class="grab"></div>${html}</div>`;m.classList.add('on');document.body.classList.add('modal-open');bindSwipe(m.firstChild);return m}
+  m.innerHTML=`<div class="sheet${wide?' wide':''}"><div class="grab"></div>${html}</div>`;m.classList.add('on');lockBody();bindSwipe(m.firstChild);return m}
 function closeModal(){const m=$('#modal');if(!m.classList.contains('on'))return;MODAL_CB=null;MORE=null;const back=MORE_BACK;MORE_BACK=null;
-  const fin=()=>{m.classList.remove('on','closing');m.innerHTML='';document.body.classList.remove('modal-open')};
+  const fin=()=>{m.classList.remove('on','closing');m.innerHTML='';unlockBody()};
   if(back){fin();ACT.more(back);return}
   if(reduced()){fin();return}
   m.classList.add('closing');clearTimeout(closeT);closeT=setTimeout(fin,200)}
@@ -997,7 +1001,8 @@ function renderTop(){const t=SECS.find(s=>s[0]===S.sec)[1];const hid=document.bo
 function renderNav(){morph($('#side'),`<div class="lg">${LOGO()}<b>${BRAND}</b></div>`+SECS.map(s=>`<button class="nv ${S.sec===s[0]?'on':''}" data-a="go" data-p="${s[0]}">${I(s[0])}${s[1]}</button>`).join('')+`<div style="flex:1"></div><button class="nv" data-a="lockNow">${I('lock')}Bloquear ahora</button>`);
   const mob=[['resumen','Resumen'],['ingresos','Ingresos'],['egresos','Egresos'],['saldos','Saldos']];
   morph($('#bnav'),mob.map(s=>`<button class="${S.sec===s[0]?'on':''}" data-a="go" data-p="${s[0]}">${I(s[0])}${s[1]}</button>`).join('')+`<button class="${['deudas','ajustes'].includes(S.sec)?'on':''}" data-a="mas">${I('mas')}Más</button>`)}
-function render(){document.body.classList.toggle('editing',S.edit);document.body.classList.toggle('no-fab',S.sec==='ajustes');renderNav();renderTop();renderView();refreshMore()}
+function render(){const y=window.scrollY,lk=document.body.classList.contains('modal-open');document.body.classList.toggle('editing',S.edit);document.body.classList.toggle('no-fab',S.sec==='ajustes');renderNav();renderTop();renderView();refreshMore();
+  if(!lk&&Math.abs(window.scrollY-y)>1)window.scrollTo(0,y)}
 function animView(){const el=$('#view');el.classList.remove('enter');void el.offsetWidth;el.classList.add('enter');clearTimeout(animView.t);animView.t=setTimeout(()=>el.classList.remove('enter'),900);const t=$('#top');t.classList.remove('enter');void t.offsetWidth;t.classList.add('enter')}
 function fadeView(){const el=$('#view');el.classList.remove('fade');void el.offsetWidth;el.classList.add('fade')}
 /* ===== arrastre (las demás tarjetas se acomodan con una animación suave) ===== */
@@ -1038,7 +1043,7 @@ ACT.wshow=p=>layoutMutate(it=>{it.find(i=>i.id===p).hide=0});
 ACT.wreset=()=>ask('¿Volver al orden y tamaños originales de esta pantalla?','Restablecer',()=>{const cur={...cfg('layout_'+dev(),{})};delete cur[S.sec];setCfg('layout_'+dev(),cur)},'wh');
 function moreHTML(it){FULLR=true;let h='';try{h=it.def.r(true)}catch(e){h='<div class="empty">Error al mostrar la lista</div>'}FULLR=false;
   return `<div class="mhead"><span class="t">${esc(wTitle(it.def))}</span><button class="ib sm" data-a="closeM">${I('x')}</button></div>`+h}
-function refreshMore(){if(!MORE)return;const m=$('#modal');if(!m.classList.contains('on'))return;const it=getLayout(S.sec).find(i=>i.id===MORE),sh=m.querySelector('.sheet');if(!it||!sh)return;const st=sh.scrollTop;FULLR=true;sh.innerHTML='<div class="grab"></div>'+moreHTML(it);FULLR=false;sh.scrollTop=st;afterRender(sh)}
+function refreshMore(){if(!MORE)return;const m=$('#modal');if(!m.classList.contains('on'))return;const it=getLayout(S.sec).find(i=>i.id===MORE),sh=m.querySelector('.sheet');if(!it||!sh)return;const st=sh.scrollTop;morph(sh,'<div class="grab"></div>'+moreHTML(it));if(sh.scrollTop!==st)sh.scrollTop=st;afterRender(sh)}
 ACT.more=p=>{const it=getLayout(S.sec).find(i=>i.id===p);if(!it)return;FULLR=true;modal(moreHTML(it),true);FULLR=false;MORE=p;afterRender($('#modal'))};
 ACT.closeM=()=>closeModal();
 ACT.mas=()=>modal(`<h2>Más</h2><div class="tb"><button class="nv" data-a="go" data-p="deudas">${I('deudas')}Deudas</button><button class="nv" data-a="go" data-p="ajustes">${I('ajustes')}Ajustes</button><button class="nv" data-a="lockNow">${I('lock')}Bloquear ahora</button></div>`);

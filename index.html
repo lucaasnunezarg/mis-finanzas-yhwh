@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-U03vh6l2TlYGoc2R6B4dJ2L7ql+qAa+mXLWYBT3V5ls='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-UtqqqVNMzeA2T2kZWziwF+8hvCOqDmbPtBJIq1y9MTo='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -390,6 +390,8 @@ body.fab-open #fabm button{opacity:1;transform:none;transition-delay:calc(var(--
   ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
   svg .ln1{stroke-dashoffset:0}
 }
+.tr.rc{grid-template-columns:26px 52px minmax(0,1fr) auto}
+@media(max-width:700px){.tr.rc{grid-template-columns:26px 44px minmax(0,1fr) auto}}
 </style></head><body>
 <div id="app"><aside id="side"></aside><main id="main"><header id="top"></header><div id="view" class="grid"></div></main></div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="lum" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.299 0.587 0.114 0 0"/></filter></svg>
@@ -404,7 +406,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelecto
 /* github.io comparte el almacenamiento entre todas las apps del mismo usuario: las claves de esta llevan prefijo para no mezclarse con otras */
 const NS='yhwh.';
 /* se cambia en cada publicación: Ajustes lo muestra para saber qué versión tiene cada dispositivo */
-const VERSION='v6 · 5 nov 2026 · Testeos y audios';
+const VERSION='v8 · 5 nov 2026 · Comisiones netas, Testeos y gráficos';
 const LS={get(k,d){try{const v=localStorage.getItem(NS+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(NS+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(NS+k)}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf0=new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}),nf2=new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -522,7 +524,10 @@ const cuentaReal=r=>{const c=cuentaDe(r);if(c!==AGG)return c;const m=r.moneda===
 /* la cuenta de algo leído de una foto: la que estás viendo; si estás en InfoProductos, la real que usa esa moneda */
 const cuentaPorMoneda=m=>esAgg()?((cuentas().find(x=>x.n!==AGG&&x.m===m)||{}).n||cuentaNueva()):cuentaNueva();
 const ingAll=()=>esAgg()?D('Ingresos'):D('Ingresos').filter(r=>cuentaDe(r)===accN());
-const egrAll=()=>esAgg()?D('Egresos').filter(r=>cuentaDe(r)!==AGG):D('Egresos').filter(r=>cuentaDe(r)===accN());
+const egrRaw=()=>esAgg()?D('Egresos').filter(r=>cuentaDe(r)!==AGG):D('Egresos').filter(r=>cuentaDe(r)===accN());
+/* los egresos de la categoría Testeos son un gasto aparte: no suman en egresos, balance ni gráficos y se ven en la tarjeta Testeos */
+const esTest=r=>String(r.categoria||'').trim().toLowerCase()==='testeos';
+const egrAll=()=>egrRaw().filter(r=>!esTest(r));
 /* ===== cotización y conversión ===== */
 function cotOf(mes){const c=D('Cotizaciones');const r=c.find(x=>x.mes===mes);if(r&&+r.usd)return+r.usd;
   const s=c.filter(x=>+x.usd).sort((a,b)=>a.mes<b.mes?1:-1);const p=s.find(x=>x.mes<mes)||s[s.length-1];return p?+p.usd:1500}
@@ -537,8 +542,16 @@ const subV=(a,b)=>({usd:a.usd-b.usd,ars:a.ars-b.ars});
 const mulV=(a,k)=>({usd:a.usd*k,ars:a.ars*k});
 const sumV=(list,f)=>list.reduce((s,r)=>addV(s,f(r)),Z());
 const mesDe=r=>r.mes||String(r.fecha||'').slice(0,7);
-const vIng=r=>conv(r.monto,r.moneda||'USD',mesDe(r));
-const vEgr=r=>conv(r.monto,r.moneda||'USD',mesDe(r));
+/* comisiones de las plataformas: la planilla guarda el monto BRUTO y la app muestra y suma el NETO. Se aplican según el origen del ingreso (los cargados a mano no tienen) y se cambian en Ajustes */
+const COM_DEF=[{o:'impultienda',m:'ARS',p:6.19,f:0},{o:'stripe',m:'USD',p:6.4,f:0.3},{o:'whop',m:'USD',p:5.99,f:0.3}];
+const comis=()=>{const a=cfg('comisiones',null);return Array.isArray(a)?a:COM_DEF};
+const comRule=r=>{const o=String(r.origen||'').toLowerCase();return comis().find(c=>c.o===o&&c.m===(r.moneda||'USD'))};
+const comisionDe=r=>{const c=comRule(r);if(!c)return 0;const m=+r.monto||0;return Math.round(Math.min(m,Math.max(0,m*(+c.p||0)/100+(+c.f||0)))*100)/100};
+const netoIng=r=>(+r.monto||0)-comisionDe(r);
+const vIng=r=>conv(netoIng(r),r.moneda||'USD',mesDe(r));
+/* los totales de egresos suman solo lo que ya está pagado: lo que figura en "Qué me queda pagar" no suma hasta que lo marcás */
+const vEgrA=r=>conv(r.monto,r.moneda||'USD',mesDe(r));
+const vEgr=r=>isPaid(r)?vEgrA(r):Z();
 /* muestra un valor {usd,ars} según el selector Todo/USD/ARS. main = moneda principal cuando es "Todo" (por defecto la de la cuenta) */
 function A(v,main){const m=S.cur==='todo'?(main||mainC()):S.cur;return m==='usd'?usd(v.usd):ars(v.ars)}
 function A2(v,main){if(S.cur!=='todo')return null;const m=main||mainC();return m==='usd'?ars(v.ars):usd(v.usd)}
@@ -813,7 +826,7 @@ function formEgr(id,pre){const r=id?D('Egresos').find(x=>x.id===id):null;pre=pre
    {k:'pagado',l:'Ya está pagado',t:'check',v:r?isPaid(r):!pre.venc},
    {k:'recurrente',l:'Se repite todos los meses',t:'check',v:r?Number(r.recurrente)===1:!!pre.recurrente},
    {k:'cuenta',l:'Cuenta',t:'select',opts:cuentaOpts(acc),v:acc}],
-   extra:avisoFoto(pre),onOk:o=>{goCuenta(o.cuenta);up('Egresos',{id:r?r.id:uid(),cuenta:o.cuenta,fecha:o.fecha,mes:o.fecha.slice(0,7),descripcion:o.descripcion,categoria:o.categoria||'',moneda:o.moneda,monto:o.monto,venc:o.venc||'',pagado:o.pagado,recurrente:o.recurrente})},
+   extra:avisoFoto(pre),onOk:o=>{goCuenta(o.cuenta);up('Egresos',{id:r?r.id:uid(),cuenta:o.cuenta,fecha:o.fecha,mes:o.fecha.slice(0,7),descripcion:o.descripcion,categoria:o.categoria||'',moneda:o.moneda,monto:o.monto,venc:o.venc||'',pagado:o.pagado,recurrente:o.recurrente});if(esTest(o))toast('Quedó en Testeos: no suma al total de egresos')},
    onDel:r?()=>del('Egresos',r.id):null})}
 function formRec(id){const r=id?D('Recurrentes').find(x=>x.id===id):null;const acc=r?cuentaDe(r):cuentaNueva();
   form({title:r?'Editar recurrente':'Nuevo recurrente',fields:[
@@ -833,8 +846,8 @@ function formSaldo(id){const r=id?D('Saldos').find(x=>x.id===id):null;
    onOk:o=>{up('Saldos',{id:r?r.id:uid(),donde:o.donde,descripcion:o.descripcion,moneda:o.moneda,monto:o.monto,actualizado:todayISO()})},
    onDel:r?()=>del('Saldos',r.id):null})}
 /* ---- listas ---- */
-function rowIng(r){const sub=[r.oferta,r.mercado,tagCta(r)].filter(Boolean).join(' · ');
-  return `<div class="tr ig" data-rt="edIng" data-p="${esc(r.id)}"><span class="mut">${fmtFecha(r.fecha)}</span><span class="d2"><span class="d">${esc(r.descripcion)}</span>${sub?`<span class="d sm2">${esc(sub)}</span>`:''}</span><span class="r"><b>${AM(money(r.monto,r.moneda))}</b></span>${editDel('edIng','delIng',r.id)}</div>`}
+function rowIng(r){const com=comisionDe(r),sub=[r.oferta,r.mercado,tagCta(r),com>0?'bruto '+money(r.monto,r.moneda)+' − comisión '+money(com,r.moneda):''].filter(Boolean).join(' · ');
+  return `<div class="tr ig" data-rt="edIng" data-p="${esc(r.id)}"><span class="mut">${fmtFecha(r.fecha)}</span><span class="d2"><span class="d">${esc(r.descripcion)}</span>${sub?`<span class="d sm2">${esc(sub)}</span>`:''}</span><span class="r"><b>${AM(money(netoIng(r),r.moneda))}</b></span>${editDel('edIng','delIng',r.id)}</div>`}
 function rowEgr(e){const pd=isPaid(e);
   return `<div class="tr te" data-rt="edEgr" data-p="${esc(e.id)}"><span class="c1">${chkB(pd,'pay',e.id)}</span><span class="d2"><span class="d${pd?' paid':''}">${esc(e.descripcion)}</span><span class="d sm2"><i class="dot" style="background:${catColor(e.categoria)}"></i>${fmtFecha(e.fecha)} · ${esc(e.categoria||SINCAT)}${esAgg()?' · '+esc(cuentaDe(e)):''}<span class="mo"> ${vencChip(e)}</span></span></span><span class="vc">${vencChip(e)}</span><span class="r"><b>${AM(money(e.monto,e.moneda||'USD'))}</b></span>${editDel('edEgr','delEgr',e.id)}</div>`}
 const egrHead=()=>`<div class="tr te th"><span class="c1"></span><span>Descripción</span><span class="vc">Vence</span><span class="r">Monto</span><span class="ed"></span></div>`;
@@ -842,7 +855,7 @@ const moreRow=(tot,shown,wid,full)=>(!full&&wid&&tot>shown)?`<button class="more
 function egrTable(list,full,n,emptyMsg,wid){if(!list.length)return empty(emptyMsg||'Sin egresos en este período');
   const L=lim(list,full,n);return `<div class="tb">${egrHead()}${L.map(rowEgr).join('')}</div>`+moreRow(list.length,L.length,wid,full)}
 const sortEgr=(a,b)=>{const x=a.venc||a.fecha||'9',y=b.venc||b.fecha||'9';return x<y?-1:x>y?1:0};
-const totEgrRow=(list,lbl)=>`<div class="tr tot" style="--c:1fr auto"><span>${lbl||'TOTAL'}</span><span class="r">${AA(sumV(list,vEgr))}</span></div>`;
+const totEgrRow=(list,lbl)=>`<div class="tr tot" style="--c:1fr auto"><span>${lbl||'TOTAL'}</span><span class="r">${AA(sumV(list,lbl==='POR PAGAR'?vEgrA:vEgr))}</span></div>`;
 const sinData=()=>!ingAll().length&&!egrAll().length;
 /* intervalos para gráficos: por día, por semana o por mes según el largo del período */
 function buckets(P){const a=P.from,b=P.to,span=diffDays(b,a)+1;
@@ -868,17 +881,16 @@ W.dist=(full)=>{const P=PD(),L=egresosP(P),m=fmCur();const by={};L.forEach(e=>{c
   return `<div class="card">${hdr('Distribución de egresos',`<button class="btn" data-a="editCats">Categorías</button>`)}${!items.length?empty('Sin egresos en este período'):`<div class="dist"><div class="dchart">${chartBox('dist',[items.map(i=>[i.n,i.v,i.c]),m],(w,h)=>donutSvg(items,Math.min(w,h),[fmV(tot,m).replace(/,\d\d$/,''),'egresos']),170)}</div><div>${items.map(i=>`<div class="drow"><i class="dot" style="background:${hexOk(i.c)}"></i><span class="d">${esc(i.n)}</span><b>${Math.round(i.v/tot*100)}%</b><span class="r mut">${AM(fmV(i.v,m))}</span></div>`).join('')}</div></div>`}</div>`};
 W.evo=()=>{const P=PD(),m0=monthOfP(P),ms=mesesEntre(mesAdd(m0,-5),m0),m=fmCur();
   const a=ms.map(x=>({label:MES3[+x.slice(5)-1],v:totIngMes(x)[m],tip:'Ingresos '+mesTxt(x)+' · '+fmV(totIngMes(x)[m],m)})),b=ms.map(x=>({label:MES3[+x.slice(5)-1],v:totEgrMes(x)[m],tip:'Egresos '+mesTxt(x)+' · '+fmV(totEgrMes(x)[m],m)}));
-  return `<div class="card">${hdr('Evolución')}<div class="lgd"><span><i class="l1"></i>Ingresos</span><span><i class="l2"></i>Egresos</span></div>${chartBox('evo',[a.map(x=>x.v),b.map(x=>x.v)],(w,h)=>lineSvg(a,b,w,h,true),190)}</div>`};
-function diaItems(P,m){const L=egresosP(P);return buckets(P).map(k=>{const v=L.filter(e=>e.fecha>=k.a&&e.fecha<=k.b).reduce((s,e)=>s+vEgr(e)[m],0);return{label:k.label,v,tip:k.label+' · '+fmV(v,m)}})}
-W.dia=()=>{const P=PD(),m=fmCur(),it=diaItems(P,m);
-  return `<div class="card">${hdr('Gasto por día')}${it.every(x=>!x.v)?empty('Sin egresos en este período'):chartBox('dia',[P.from,P.to,m,it.map(x=>x.v)],(w,h)=>barsSvg(it,w,h),190)}</div>`};
-W.acum=()=>{const P=PD(),m=fmCur(),it=diaItems(P,m);let s=0;const pts=it.map(x=>{s+=x.v;return{label:x.label,v:s,tip:x.label+' · acumulado '+fmV(s,m)}});
-  return `<div class="card">${hdr('Gasto acumulado')}${s?chartBox('acum',[P.from,P.to,m,pts.map(x=>x.v)],(w,h)=>lineSvg(pts,null,w,h,true),190):empty('Sin egresos en este período')}</div>`};
+  return `<div class="card">${hdr('Evolución mensual')}<div class="lgd"><span><i class="l1"></i>Ingresos</span><span><i class="l2"></i>Egresos</span></div>${chartBox('evo',[a.map(x=>x.v),b.map(x=>x.v)],(w,h)=>lineSvg(a,b,w,h,true),190)}</div>`};
+W.acum=()=>{const P=PD(),m=fmCur(),bk=buckets(P),L=ingresosP(P),E=egresosP(P);let si=0,se=0;
+  const a=bk.map(k=>{si+=L.filter(e=>e.fecha>=k.a&&e.fecha<=k.b).reduce((s,e)=>s+vIng(e)[m],0);return{label:k.label,v:si,tip:'Ingresos acumulados al '+k.label+' · '+fmV(si,m)}}),
+    b=bk.map(k=>{se+=E.filter(e=>e.fecha>=k.a&&e.fecha<=k.b).reduce((s,e)=>s+vEgr(e)[m],0);return{label:k.label,v:se,tip:'Egresos acumulados al '+k.label+' · '+fmV(se,m)}});
+  return `<div class="card">${hdr('Evolución diaria')}<div class="lgd"><span><i class="l1"></i>Ingresos</span><span><i class="l2"></i>Egresos</span></div>${si||se?chartBox('acum',[P.from,P.to,m,a.map(x=>x.v),b.map(x=>x.v)],(w,h)=>lineSvg(a,b,w,h,true),190):empty('Sin movimientos en este período')}</div>`};
 W.lIng=(full)=>{const L=ingresosP(PD());return `<div class="card">${hdr('Ingresos',addBtn('addIng','','Nuevo','wh'),'lIng')}${L.length?`<div class="tb">${lim(L,full).map(rowIng).join('')}</div>${moreRow(L.length,6,'lIng',full)}`:empty('Sin ingresos en este período')}</div>`};
 W.lEgr=(full)=>{const L=egresosP(PD());return `<div class="card">${hdr('Egresos',addBtn('addEgr','','Nuevo','wh'),'lEgr')}${egrTable(L,full,6,null,'lEgr')}</div>`};
 /* recurrentes: la lista de tus gastos de todos los meses y cuáles ya están cargados en el mes mostrado */
 W.rec=(full)=>{const P=PD(),mm=monthOfP(P),L=recAll().slice().sort((a,b)=>(+a.dia||99)-(+b.dia||99)),falt=recFaltan(mm).length,tot=sumV(L,r=>conv(r.monto,r.moneda,mm));
-  const row=r=>{const ya=D('Egresos').some(e=>e.id===recId(r,mm));return `<div class="tr rc" data-rt="edRec" data-p="${esc(r.id)}"><span class="mut">${r.dia?('día '+r.dia):'—'}</span><span class="d2"><span class="d">${esc(r.descripcion)}</span><span class="d sm2"><i class="dot" style="background:${catColor(r.categoria)}"></i>${esc(r.categoria||SINCAT)}${esAgg()?' · '+esc(cuentaDe(r)):''} ${ya?'<span class="chip">CARGADO</span>':'<span class="chip w">FALTA</span>'}</span></span><span class="r"><b>${AM(money(r.monto,r.moneda))}</b></span>${editDel('edRec','delRec',r.id)}</div>`};
+  const row=r=>{const eg=D('Egresos').find(e=>e.id===recId(r,mm)),ya=!!eg;return `<div class="tr rc" data-rt="edRec" data-p="${esc(r.id)}"><span class="c1">${chkB(ya&&isPaid(eg),'payRec',r.id)}</span><span class="mut">${r.dia?('día '+r.dia):'—'}</span><span class="d2"><span class="d">${esc(r.descripcion)}</span><span class="d sm2"><i class="dot" style="background:${catColor(r.categoria)}"></i>${esc(r.categoria||SINCAT)}${esAgg()?' · '+esc(cuentaDe(r)):''} ${ya?'<span class="chip">CARGADO</span>':'<span class="chip w">FALTA</span>'}</span></span><span class="r"><b>${AM(money(r.monto,r.moneda))}</b></span>${editDel('edRec','delRec',r.id)}</div>`};
   return `<div class="card">${hdr('Recurrentes',addBtn('addRec','','Nuevo','wh'),'rec')}${L.length?`<small>${L.length} gastos que se repiten · ${falt?falt+' sin cargar en '+mesName(mm):'todos cargados en '+mesName(mm)}</small><div class="tb">${lim(L,full,6).map(row).join('')}<div class="tr tot" style="--c:1fr auto"><span>POR MES</span><span class="r">${AA(tot)}</span></div></div>${moreRow(L.length,6,'rec',full)}${falt?`<div class="acts" style="justify-content:flex-start"><button class="btn wh" data-a="cargarRec" data-p="${mm}">${I('repeat')}Cargar los que faltan en ${mesName(mm)} (${falt})</button></div>`:''}`:empty('Todavía no cargaste gastos que se repiten (Google Workspace, Claude, etc.)',`<div style="margin-top:10px">${addBtn('addRec','','Agregar el primero','wh')}</div>`)}</div>`};
 W.saR=()=>{const a=totalSaldos();return `<div class="card">${hdr('Saldos',eyeBtn('saR'),'')}${BIG(a,'saR',null,'mid')}<div class="sub">${AS(a)||D('Saldos').length+' cuentas'}</div><div style="margin-top:12px"><button class="more" data-a="go" data-p="saldos">Ver más ›</button></div></div>`};
 W.deR=()=>{const t=sumV(deudasAct(),d=>vDeu(d,'monto_actual'));return `<div class="card">${hdr('Préstamos y deudas',eyeBtn('deR'))}${BIG(t,'deR',null,'mid')}<div class="sub">${AS(t)}</div><div style="margin-top:12px"><button class="more" data-a="go" data-p="deudas">Ver más ›</button></div></div>`};
@@ -897,7 +909,7 @@ W.diaI=()=>{const P=PD(),m=fmCur(),L=ingresosP(P),it=buckets(P).map(k=>{const v=
 W.heroE=()=>{const P=PD(),L=egresosP(P),t=sumV(L,vEgr);const[pg,n]=cnt(L);
   return `<div class="card hl"><div class="ch"><span class="t">${heroTitle('EGRESOS',P)}</span>${eyeBtn('all')}</div>${BIG(t,'heroE')}<div class="sub">${AS(t)||''}${AS(t)?' · ':''}${pg} de ${n} pagados</div>
   <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn bk" data-a="addEgr">${I('plus')}Nuevo egreso</button><button class="btn out" data-a="cargarRec" data-p="${monthOfP(P)}">${I('repeat')}Cargar recurrentes</button><button class="btn out" data-a="dupMes">${I('dup')}Duplicar mes</button></div></div>`};
-W.listaE=(full)=>{const L=egresosP(PD());return `<div class="card">${hdr('Egresos del período',addBtn('addEgr','','Nuevo','wh'),'listaE')}${L.length?`<small>${cnt(L)[0]} de ${L.length} pagados</small>`:''}${egrTable(L,full,10,'Sin egresos en este período','listaE')}${L.length?totEgrRow(L):''}</div>`};
+W.listaE=(full)=>{const L=egresosP(PD());return `<div class="card">${hdr('Egresos del período',addBtn('addEgr','','Nuevo','wh'),'listaE')}${L.length?`<small>${cnt(L)[0]} de ${L.length} pagados</small>`:''}${egrTable(L,full,10,'Sin egresos en este período','listaE')}${L.length?totEgrRow(L,'TOTAL PAGADO'):''}</div>`};
 /* ---- testeos: plata invertida en pruebas (Wave Speed, Claude Console, etc.). Vive aparte: NUNCA se suma a los egresos ni al balance ---- */
 const TST_E={curso:'EN CURSO',ganador:'GANADOR',descartado:'DESCARTADO'};
 const tests=()=>{const a=cfg('testeos',[]);return Array.isArray(a)?a:[]};
@@ -905,14 +917,21 @@ const tstEst=t=>TST_E[t.e]?t.e:'curso';
 const vTG=g=>conv(g.m,g.mo||'USD',String(g.f||'').slice(0,7)||curMes());
 const tstTot=t=>sumV(t.g||[],vTG);
 function saveTests(a){if(JSON.stringify(a).length>28000){toast('No entran más datos de testeos: borrá testeos viejos');return false}setCfg('testeos',a);return true}
-function formTest(id){const t=id?tests().find(x=>x.id===id):null;
+const tstKey=x=>String(x||'').trim().toLowerCase();
+/* testeos que se ven: los cargados a mano + uno por cada descripción (Testeo 1, Testeo 2…) de los egresos de categoría Testeos */
+function testsAll(){const L=tests().map(t=>({...t,g:(t.g||[]).slice()}));
+  egrRaw().filter(esTest).forEach(e=>{const k=tstKey(e.descripcion)||'testeos';let t=L.find(x=>tstKey(x.n)===k);
+    if(!t){t={id:'a:'+k,n:String(e.descripcion||'').trim()||'Testeos',e:'curso',g:[],auto:1};L.push(t)}
+    t.g.push({id:e.id,d:e.descripcion||'Egreso',m:e.monto,mo:e.moneda||'USD',f:e.fecha,egr:1})});
+  return L.sort((a,b)=>String(a.n).localeCompare(String(b.n),'es',{numeric:true}))}
+function formTest(id){const v=id&&String(id).startsWith('a:')?testsAll().find(x=>x.id===id):null,t=id&&!v?tests().find(x=>x.id===id):null;
   form({title:t?'Editar testeo':'Nuevo testeo',fields:[
-   {k:'n',l:'Nombre del testeo',v:t&&t.n,req:1,ph:'Ej: Testeo 2'},
+   {k:'n',l:'Nombre del testeo',v:t?t.n:(v&&v.n),req:1,ph:'Ej: Testeo 2'},
    {k:'e',l:'Estado',t:'select',opts:[{v:'curso',l:'En curso'},{v:'ganador',l:'Ganador'},{v:'descartado',l:'Descartado'}],v:t?tstEst(t):'curso'}],
    onOk:o=>{const a=tests().map(x=>({...x})),n=o.n.slice(0,40);if(t){const x=a.find(y=>y.id===t.id);if(x){x.n=n;x.e=o.e}}else a.push({id:uid(),n,e:o.e,g:[]});return saveTests(a)},
    onDel:t?()=>saveTests(tests().filter(x=>x.id!==t.id)):null})}
-function formTG(tid,gid){const L=tests();if(!L.length){toast('Primero creá un testeo');formTest();return}
-  const t0=L.find(x=>x.id===tid)||L[L.length-1],g=gid?(t0.g||[]).find(x=>x.id===gid):null;
+function formTG(tid,gid){const L=testsAll();if(!L.length){toast('Primero creá un testeo');formTest();return}
+  const t0=L.find(x=>x.id===tid)||L[L.length-1],g=gid?(t0.g||[]).find(x=>x.id===gid&&!x.egr):null;
   const back=id=>setTimeout(()=>ACT.verTest(id),330);
   form({title:g?'Editar gasto del testeo':'Gasto de testeo',fields:[
    {k:'t',l:'Testeo',t:'select',opts:L.map(x=>({v:x.id,l:x.n})),v:t0.id},
@@ -921,17 +940,18 @@ function formTG(tid,gid){const L=tests();if(!L.length){toast('Primero creá un t
    {k:'f',l:'Fecha',t:'date',v:g?g.f:todayISO(),req:1}],
    extra:'<div class="sub" style="margin-top:6px">Esto no se suma a tus egresos ni al balance: es solo para saber cuánto invertiste en cada testeo.</div>',
    onOk:o=>{if(!(o.m>0)){toast('Poné un monto mayor a cero');return false}
-     const a=tests().map(x=>({...x,g:(x.g||[]).filter(y=>!g||y.id!==g.id)})),dst=a.find(x=>x.id===o.t);if(!dst)return false;
-     dst.g.unshift({id:g?g.id:uid(),d:o.d.slice(0,60),m:o.m,mo:o.mo,f:o.f});if(!saveTests(a))return false;back(o.t)},
+     const a=tests().map(x=>({...x,g:(x.g||[]).filter(y=>!g||y.id!==g.id)}));let dst=a.find(x=>x.id===o.t);
+     if(!dst){const vt=L.find(x=>x.id===o.t);if(!vt)return false;dst={id:uid(),n:vt.n,e:vt.e,g:[]};a.push(dst)}
+     dst.g=dst.g||[];dst.g.unshift({id:g?g.id:uid(),d:o.d.slice(0,60),m:o.m,mo:o.mo,f:o.f});if(!saveTests(a))return false;back(dst.id)},
    onDel:g?()=>{if(saveTests(tests().map(x=>({...x,g:(x.g||[]).filter(y=>y.id!==g.id)}))))back(t0.id)}:null})}
 const tstRow=t=>{const n=(t.g||[]).length;return `<div class="tr tst" data-rt="verTest" data-p="${esc(t.id)}" style="--c:minmax(0,1fr) auto"><span class="d2"><span class="d">${esc(t.n)}</span><span class="d sm2">${TST_E[tstEst(t)]} · ${n} ${n===1?'gasto':'gastos'}</span></span><span class="r"><b>${AA(tstTot(t))}</b></span></div>`};
-W.tst=(full)=>{const L=tests(),por=e=>L.filter(t=>tstEst(t)===e).reduce((s,t)=>addV(s,tstTot(t)),Z()),all=L.reduce((s,t)=>addV(s,tstTot(t)),Z());
+W.tst=(full)=>{const L=testsAll(),por=e=>L.filter(t=>tstEst(t)===e).reduce((s,t)=>addV(s,tstTot(t)),Z()),all=L.reduce((s,t)=>addV(s,tstTot(t)),Z());
   return `<div class="card">${hdr('Testeos',addBtn('addTest','','Nuevo testeo','wh'),L.length>6?'tst':'')}${L.length?`<small>Invertido en testeos · no se suma a tus egresos</small>${BIG(all,'tst',null,'mid')}<div class="sub">${AS(all)||''}</div>
    <div class="tb" style="margin-top:8px"><div class="tr" style="--c:1fr auto"><span class="mut">En los ganadores</span><span class="r">${AA(por('ganador'))}</span></div><div class="tr" style="--c:1fr auto"><span class="mut">En los descartados</span><span class="r">${AA(por('descartado'))}</span></div><div class="tr" style="--c:1fr auto"><span class="mut">En los que siguen en curso</span><span class="r">${AA(por('curso'))}</span></div></div>
    <div class="tb" style="margin-top:10px">${lim(L,full,6).map(tstRow).join('')}</div>${moreRow(L.length,6,'tst',full)}
    <div class="acts" style="justify-content:flex-start"><button class="btn wh" data-a="addTG" data-p="">${I('plus')}Cargar gasto de testeo</button></div>`
    :empty('Cargá tus testeos (Testeo 1, Testeo 2…) y cuánto gastaste en cada uno. No se suma a tus egresos.',`<div style="margin-top:10px">${addBtn('addTest','','Crear el primero','wh')}</div>`)}</div>`};
-const rowTG=t=>g=>`<div class="tr" data-rt="edTG" data-p="${esc(t.id+'|'+g.id)}" style="--c:48px minmax(0,1fr) auto"><span class="mut">${fmtFecha(g.f)}</span><span class="d">${esc(g.d)}</span><span class="r"><b>${AM(money(g.m,g.mo||'USD'))}</b></span></div>`;
+const rowTG=t=>g=>`<div class="tr" data-rt="${g.egr?'edEgr':'edTG'}" data-p="${esc(g.egr?g.id:t.id+'|'+g.id)}" style="--c:48px minmax(0,1fr) auto"><span class="mut">${fmtFecha(g.f)}</span><span class="d2"><span class="d">${esc(g.d)}</span>${g.egr?'<span class="d sm2">cargado como egreso</span>':''}</span><span class="r"><b>${AM(money(g.m,g.mo||'USD'))}</b></span></div>`;
 /* ---- saldos (cargados a mano) ---- */
 W.heroA=()=>{const a=totalSaldos();return `<div class="card hl"><div class="ch"><span class="t">TOTAL SALDOS</span>${eyeBtn('all')}</div>${BIG(a,'heroA','usd')}<div class="sub">${AS(a,'usd')||''}</div><div style="margin-top:14px"><button class="btn bk" data-a="addSaldo">${I('plus')}Nuevo saldo</button></div></div>`};
 W.saL=(full)=>{const L=D('Saldos');return `<div class="card">${hdr('Cuentas y saldos',addBtn('addSaldo','','Nuevo','wh'))}${L.length?`<div class="tb">${L.map(r=>`<div class="tr sa" data-rt="edSaldo" data-p="${esc(r.id)}"><span class="d2"><span class="d">${esc(r.donde)}</span><span class="d sm2">${esc(r.descripcion||'')}${r.actualizado?(r.descripcion?' · ':'')+'al '+fmtFecha(r.actualizado):''}</span></span><span class="r"><b>${AM(money(r.monto,r.moneda))}</b></span>${editDel('edSaldo','delSaldo',r.id)}</div>`).join('')}</div>`:empty('Todavía no cargaste saldos. Tocá Nuevo y anotá lo que tenés en cada lugar',`<div style="margin-top:10px">${addBtn('addSaldo','','Cargar el primero','wh')}</div>`)}</div>`};
@@ -978,14 +998,14 @@ function rowMov(p){const tp=p.tipo==='suma'?' <span class="chip">suma</span>':p.
 W.deuMov=(full)=>{const P=PD(),L=pagosP(P),pg=pagadoP(P);
   return `<div class="card">${hdr('Pagos y movimientos',addBtn('payDeu','','Registrar','wh'),'deuMov')}${L.length?`<div class="tb">${lim(L,full,8).map(rowMov).join('')}<div class="tr tot" style="--c:1fr auto"><span>PAGADO</span><span class="r">${AA(pg,'usd')}</span></div></div>${moreRow(L.length,8,'deuMov',full)}`:empty('Sin pagos en este período')}</div>`};
 /* ===== registro de widgets por sección ===== */
-const TITLES={hero:'Balance',cot:'Cotización USD',cIng:'Ingresos (total)',cEgr:'Egresos (total)',pend:'Qué me queda pagar',dist:'Distribución de egresos',evo:'Evolución',dia:'Gasto por día',acum:'Gasto acumulado',lIng:'Lista de ingresos',lEgr:'Lista de egresos',rec:'Recurrentes',saR:'Saldos',deR:'Préstamos y deudas',
+const TITLES={hero:'Balance',cot:'Cotización USD',cIng:'Ingresos (total)',cEgr:'Egresos (total)',pend:'Qué me queda pagar',dist:'Distribución de egresos',evo:'Evolución mensual',acum:'Evolución diaria',lIng:'Lista de ingresos',lEgr:'Lista de egresos',rec:'Recurrentes',saR:'Saldos',deR:'Préstamos y deudas',
  heroI:'Lo que ganaste',porOferta:'Ingresos por oferta',porMercado:'Ingresos por mercado',mov:'Movimientos',diaI:'Ingresos por día',heroE:'Egresos',listaE:'Egresos del período',tst:'Testeos (aparte del total)',
  heroA:'Total saldos',saL:'Cuentas y saldos',saH:'Historial de saldos',heroD:'Actual préstamos/deudas',dch:'Actual vs total',dD:'Deudas',dP:'Préstamos',dA:'Actual',dT:'Total',heroP:'Pagado en el período',deuEvo:'Deuda mes a mes',deuMov:'Pagos y movimientos'};
 function sectionWidgets(sec){
   const mk=a=>a.map(x=>({id:x[0],d:x[1],m:x[2],r:W[x[0]]}));
-  if(sec==='resumen')return mk([['hero','L','F'],['cot','S','F'],['cIng','M','S'],['cEgr','M','S'],['pend','M','F'],['dist','M','F'],['evo','M','F'],['dia','M','F'],['acum','M','F'],['lIng','M','F'],['lEgr','M','F'],['rec','M','F'],['saR','M','F'],['deR','M','F']]);
+  if(sec==='resumen')return mk([['hero','L','F'],['cot','S','F'],['cIng','M','S'],['cEgr','M','S'],['pend','M','F'],['dist','M','F'],['evo','M','F'],['acum','M','F'],['lIng','M','F'],['lEgr','M','F'],['rec','M','F'],['saR','M','F'],['deR','M','F']]);
   if(sec==='ingresos')return mk([['heroI','L','F'],['cot','S','F'],['porOferta','M','F'],['porMercado','M','F'],['mov','F','F'],['diaI','M','F'],['evo','M','F']]);
-  if(sec==='egresos')return mk([['heroE','L','F'],['cot','S','F'],['pend','M','F'],['rec','M','F'],['listaE','F','F'],['tst','M','F'],['dist','M','F'],['dia','M','F'],['acum','F','F']]);
+  if(sec==='egresos')return mk([['heroE','L','F'],['cot','S','F'],['pend','M','F'],['rec','M','F'],['listaE','F','F'],['tst','M','F'],['dist','M','F'],['acum','F','F']]);
   if(sec==='saldos')return mk([['heroA','F','F'],['saL','M','F'],['saH','M','F']]);
   if(sec==='deudas')return mk([['heroP','M','F'],['heroD','M','F'],['deuEvo','F','F'],['deuMov','F','F'],['dD','M','F'],['dP','M','F'],['dch','M','F'],['dA','M','F'],['dT','M','F']]);
   return[]}
@@ -1086,11 +1106,13 @@ ACT.closeM=()=>closeModal();
 ACT.mas=()=>modal(`<h2>Más</h2><div class="tb"><button class="nv" data-a="go" data-p="deudas">${I('deudas')}Deudas</button><button class="nv" data-a="go" data-p="ajustes">${I('ajustes')}Ajustes</button><button class="nv" data-a="lockNow">${I('lock')}Bloquear ahora</button></div>`);
 ACT.per=p=>{S.per={...periodos()[+p]};LS.set('per',S.per);if(!vt(()=>render()))fadeView()};
 ACT.pers=()=>persModal();
+ACT.payRec=id=>{const r=D('Recurrentes').find(x=>x.id===id);if(!r)return;const mm=monthOfP(PD()),eid=recId(r,mm),e=D('Egresos').find(x=>x.id===eid);
+  if(e)up('Egresos',{id:eid,pagado:isPaid(e)?0:1});else up('Egresos',{id:eid,cuenta:cuentaReal(r),fecha:recFecha(r,mm),mes:mm,descripcion:r.descripcion,categoria:r.categoria||'',moneda:r.moneda,monto:r.monto,venc:recFecha(r,mm),pagado:1,recurrente:1})};
 ACT.pay=id=>{const e=D('Egresos').find(x=>x.id===id);if(e)up('Egresos',{id,pagado:isPaid(e)?0:1})};
 ACT.addIng=()=>formIng();ACT.edIng=id=>formIng(id);ACT.delIng=id=>delAsk('¿Eliminar este ingreso?','Ingresos',id);
 ACT.addEgr=()=>formEgr();ACT.edEgr=id=>formEgr(id);ACT.delEgr=id=>delAsk('¿Eliminar este egreso?','Egresos',id);
 ACT.addRec=()=>formRec();ACT.edRec=id=>formRec(id);ACT.delRec=id=>delAsk('¿Eliminar este recurrente? Los egresos que ya cargaste quedan.','Recurrentes',id);
-ACT.verTest=id=>{const t=tests().find(x=>x.id===id);if(!t)return;const g=(t.g||[]).slice().sort((a,b)=>String(b.f).localeCompare(String(a.f)));
+ACT.verTest=id=>{const t=testsAll().find(x=>x.id===id);if(!t)return;const g=(t.g||[]).slice().sort((a,b)=>String(b.f).localeCompare(String(a.f)));
   modal(`<div class="mhead"><span class="t">${esc(t.n)}</span><button class="ib sm" data-a="closeM">${I('x')}</button></div><div class="sub">${TST_E[tstEst(t)]} · no se suma a tus egresos</div>
    <div class="tb">${g.length?g.map(rowTG(t)).join(''):empty('Sin gastos cargados')}<div class="tr tot" style="--c:1fr auto"><span>TOTAL INVERTIDO</span><span class="r">${AA(tstTot(t))}</span></div></div>
    <div class="acts"><button class="btn" data-a="edTest" data-p="${esc(t.id)}">Editar testeo</button><button class="btn wh" data-a="addTG" data-p="${esc(t.id)}">Cargar gasto</button></div>`,true)};
@@ -1267,6 +1289,7 @@ function settingsHTML(){const L=LS.get('lock',null);const host=(()=>{try{return 
    <div class="sec" style="margin:14px 0 0"><h3 style="margin-bottom:0">Egreso</h3>${codeBox(atajoTxt('Egresos'))}</div>
    <div class="sec" style="margin:14px 0 0"><h3 style="margin-bottom:0">Ingreso</h3>${codeBox(atajoTxt('Ingresos'))}</div>
    <small style="display:block;margin-top:10px">El id tiene que ser distinto en cada uso (por ejemplo, la fecha y la hora). Si repetís un id, se reemplaza esa fila en vez de crear otra.</small></div></div>
+  <div class="card"><div class="sec"><h3>Comisiones de las plataformas</h3><small>Los ingresos de cada plataforma se muestran y suman <b>netos</b>: se les descuenta la comisión. En la planilla queda el monto bruto. Los ingresos cargados a mano no tienen comisión.</small>${comis().map(c=>`<div class="ln"><span>${esc(c.o==='impultienda'?'Impultienda + Mercado Pago (pesos)':c.o==='stripe'?'Impultienda + Stripe (dólares)':c.o==='whop'?'Impultienda + Whop (dólares)':c.o)}<small>${+c.p||0}%${+c.f?' + '+(+c.f)+' por venta':''}</small></span></div>`).join('')}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="editCom">Cambiar comisiones</button></div></div></div>
   <div class="card"><div class="sec"><h3>Pantallas</h3><div class="ln"><span>Restablecer el orden y tamaño de todas las tarjetas de este dispositivo</span><button class="btn dg" data-a="resetAll">Restablecer</button></div></div></div></div>`}
 document.addEventListener('change',e=>{const t=e.target;
   if(t.dataset&&t.dataset.a==='lockTime'){const L=LS.get('lock',null);if(L){L.t=+t.value;LS.set('lock',L);toast('Listo')}}
@@ -1398,6 +1421,11 @@ function audLista(){if(!AUDQ.length)return;
   modal(`<h2>Entendí ${AUDQ.length} movimientos</h2><small>Tocá uno para revisarlo y cargarlo. Si no querés alguno, descartalo.</small><div class="tb" style="margin-top:10px">${AUDQ.map((p,i)=>`<div class="tr" data-rt="audItem" data-p="${i}" style="--c:minmax(0,1fr) auto"><span class="d2"><span class="d">${esc(p.descripcion||'(sin detalle)')}</span><span class="d sm2">${p.tipo==='ingreso'?'INGRESO':'EGRESO'}</span></span><span class="r"><b>${p.monto>0?esc(money(+p.monto,p.moneda==='ARS'?'ARS':'USD')):'—'}</b></span></div>`).join('')}</div><div class="acts"><button class="btn" data-a="audFin">Descartar el resto</button></div>`)}
 ACT.audItem=i=>{const p=AUDQ[+i];if(!p)return;AUDQ.splice(+i,1);AUDF=false;closeModal();setTimeout(()=>{AUDF=true;fotoForm(p,'del audio')},300)};
 ACT.audFin=()=>{AUDQ=[];AUDF=false;closeModal()};
+/* ===== comisiones por plataforma ===== */
+ACT2.editCom=()=>{const L=comis().map(c=>({...c})),nom=c=>c.o==='impultienda'?'Impultienda + Mercado Pago (pesos)':c.o==='stripe'?'Impultienda + Stripe (dólares)':c.o==='whop'?'Impultienda + Whop (dólares)':c.o;
+  form({title:'Comisiones',fields:L.flatMap((c,i)=>[{k:'p'+i,l:nom(c)+': % por venta',t:'number',v:c.p,half:1},{k:'f'+i,l:'Fijo por venta ('+(c.m==='ARS'?'pesos':'US$')+')',t:'number',v:c.f,half:1}]),
+   extra:'<div class="sub" style="margin-top:6px">Impultienda 2% + Mercado Pago 4,19% = 6,19%. En Stripe y Whop va el 2% de Impultienda más lo que cobra cada una (tarjeta internacional) y los 0,30 fijos. Chequealo con una venta real.</div>',
+   onOk:o=>{const R=L.map((c,i)=>({o:c.o,m:c.m,p:Math.min(50,Math.max(0,+o['p'+i]||0)),f:Math.min(100000,Math.max(0,+o['f'+i]||0))}));setCfg('comisiones',R);toast('Comisiones guardadas')}})};
 
 /* ===== bloqueo (PIN + Face ID) ===== */
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}

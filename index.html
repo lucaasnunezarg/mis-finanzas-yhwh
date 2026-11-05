@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Jl1g5+ZkLPJ2j4HxNI2thfUIjQasJQAUHDJ9Dq0iCRw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-U03vh6l2TlYGoc2R6B4dJ2L7ql+qAa+mXLWYBT3V5ls='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -404,7 +404,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelecto
 /* github.io comparte el almacenamiento entre todas las apps del mismo usuario: las claves de esta llevan prefijo para no mezclarse con otras */
 const NS='yhwh.';
 /* se cambia en cada publicación: Ajustes lo muestra para saber qué versión tiene cada dispositivo */
-const VERSION='v5 · 4 nov 2026 · Paneles que bloquean el fondo';
+const VERSION='v6 · 5 nov 2026 · Testeos y audios';
 const LS={get(k,d){try{const v=localStorage.getItem(NS+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(NS+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(NS+k)}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf0=new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}),nf2=new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -617,6 +617,7 @@ mas:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx
 copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/>',
 dup:'<rect x="3" y="7" width="13" height="13" rx="2"/><path d="M8 3h11a2 2 0 012 2v11"/>',
 repeat:'<path d="M17 3l4 4-4 4M3 11V9a2 2 0 012-2h16M7 21l-4-4 4-4M21 13v2a2 2 0 01-2 2H3"/>',
+mic:'<rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/>',
 camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
 pay:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h3"/>'};
 const I=(n,w)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${w?` width="${w}" height="${w}"`:''}>${P_[n]||''}</svg>`;
@@ -629,7 +630,9 @@ function unlockBody(){const b=document.body;if(!b.classList.contains('modal-open
 function modal(html,wide){const m=$('#modal');clearTimeout(closeT);m.classList.remove('closing');
   m.innerHTML=`<div class="sheet${wide?' wide':''}"><div class="grab"></div>${html}</div>`;m.classList.add('on');lockBody();bindSwipe(m.firstChild);return m}
 function closeModal(){const m=$('#modal');if(!m.classList.contains('on'))return;MODAL_CB=null;MORE=null;const back=MORE_BACK;MORE_BACK=null;
-  const fin=()=>{m.classList.remove('on','closing');m.innerHTML='';unlockBody()};
+  const fin=()=>{m.classList.remove('on','closing');m.innerHTML='';unlockBody();
+    if(typeof AREC!=='undefined'&&AREC){try{AREC.stop()}catch(e){}}
+    if(typeof AUDF!=='undefined'&&AUDF){AUDF=false;if(AUDQ.length)setTimeout(audLista,300)}};
   if(back){fin();ACT.more(back);return}
   if(reduced()){fin();return}
   m.classList.add('closing');clearTimeout(closeT);closeT=setTimeout(fin,200)}
@@ -895,6 +898,40 @@ W.heroE=()=>{const P=PD(),L=egresosP(P),t=sumV(L,vEgr);const[pg,n]=cnt(L);
   return `<div class="card hl"><div class="ch"><span class="t">${heroTitle('EGRESOS',P)}</span>${eyeBtn('all')}</div>${BIG(t,'heroE')}<div class="sub">${AS(t)||''}${AS(t)?' · ':''}${pg} de ${n} pagados</div>
   <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn bk" data-a="addEgr">${I('plus')}Nuevo egreso</button><button class="btn out" data-a="cargarRec" data-p="${monthOfP(P)}">${I('repeat')}Cargar recurrentes</button><button class="btn out" data-a="dupMes">${I('dup')}Duplicar mes</button></div></div>`};
 W.listaE=(full)=>{const L=egresosP(PD());return `<div class="card">${hdr('Egresos del período',addBtn('addEgr','','Nuevo','wh'),'listaE')}${L.length?`<small>${cnt(L)[0]} de ${L.length} pagados</small>`:''}${egrTable(L,full,10,'Sin egresos en este período','listaE')}${L.length?totEgrRow(L):''}</div>`};
+/* ---- testeos: plata invertida en pruebas (Wave Speed, Claude Console, etc.). Vive aparte: NUNCA se suma a los egresos ni al balance ---- */
+const TST_E={curso:'EN CURSO',ganador:'GANADOR',descartado:'DESCARTADO'};
+const tests=()=>{const a=cfg('testeos',[]);return Array.isArray(a)?a:[]};
+const tstEst=t=>TST_E[t.e]?t.e:'curso';
+const vTG=g=>conv(g.m,g.mo||'USD',String(g.f||'').slice(0,7)||curMes());
+const tstTot=t=>sumV(t.g||[],vTG);
+function saveTests(a){if(JSON.stringify(a).length>28000){toast('No entran más datos de testeos: borrá testeos viejos');return false}setCfg('testeos',a);return true}
+function formTest(id){const t=id?tests().find(x=>x.id===id):null;
+  form({title:t?'Editar testeo':'Nuevo testeo',fields:[
+   {k:'n',l:'Nombre del testeo',v:t&&t.n,req:1,ph:'Ej: Testeo 2'},
+   {k:'e',l:'Estado',t:'select',opts:[{v:'curso',l:'En curso'},{v:'ganador',l:'Ganador'},{v:'descartado',l:'Descartado'}],v:t?tstEst(t):'curso'}],
+   onOk:o=>{const a=tests().map(x=>({...x})),n=o.n.slice(0,40);if(t){const x=a.find(y=>y.id===t.id);if(x){x.n=n;x.e=o.e}}else a.push({id:uid(),n,e:o.e,g:[]});return saveTests(a)},
+   onDel:t?()=>saveTests(tests().filter(x=>x.id!==t.id)):null})}
+function formTG(tid,gid){const L=tests();if(!L.length){toast('Primero creá un testeo');formTest();return}
+  const t0=L.find(x=>x.id===tid)||L[L.length-1],g=gid?(t0.g||[]).find(x=>x.id===gid):null;
+  const back=id=>setTimeout(()=>ACT.verTest(id),330);
+  form({title:g?'Editar gasto del testeo':'Gasto de testeo',fields:[
+   {k:'t',l:'Testeo',t:'select',opts:L.map(x=>({v:x.id,l:x.n})),v:t0.id},
+   {k:'d',l:'En qué lo gastaste',v:g&&g.d,req:1,ph:'Ej: Wave Speed, Claude Console',list:uniq(L.flatMap(x=>(x.g||[]).map(y=>y.d))).slice(0,60)},
+   {k:'m',l:'Monto',t:'number',v:g?g.m:'',ph:'0',half:1},{k:'mo',l:'Moneda',t:'select',opts:monedaOpts('USD'),v:g?g.mo:'USD',half:1},
+   {k:'f',l:'Fecha',t:'date',v:g?g.f:todayISO(),req:1}],
+   extra:'<div class="sub" style="margin-top:6px">Esto no se suma a tus egresos ni al balance: es solo para saber cuánto invertiste en cada testeo.</div>',
+   onOk:o=>{if(!(o.m>0)){toast('Poné un monto mayor a cero');return false}
+     const a=tests().map(x=>({...x,g:(x.g||[]).filter(y=>!g||y.id!==g.id)})),dst=a.find(x=>x.id===o.t);if(!dst)return false;
+     dst.g.unshift({id:g?g.id:uid(),d:o.d.slice(0,60),m:o.m,mo:o.mo,f:o.f});if(!saveTests(a))return false;back(o.t)},
+   onDel:g?()=>{if(saveTests(tests().map(x=>({...x,g:(x.g||[]).filter(y=>y.id!==g.id)}))))back(t0.id)}:null})}
+const tstRow=t=>{const n=(t.g||[]).length;return `<div class="tr tst" data-rt="verTest" data-p="${esc(t.id)}" style="--c:minmax(0,1fr) auto"><span class="d2"><span class="d">${esc(t.n)}</span><span class="d sm2">${TST_E[tstEst(t)]} · ${n} ${n===1?'gasto':'gastos'}</span></span><span class="r"><b>${AA(tstTot(t))}</b></span></div>`};
+W.tst=(full)=>{const L=tests(),por=e=>L.filter(t=>tstEst(t)===e).reduce((s,t)=>addV(s,tstTot(t)),Z()),all=L.reduce((s,t)=>addV(s,tstTot(t)),Z());
+  return `<div class="card">${hdr('Testeos',addBtn('addTest','','Nuevo testeo','wh'),L.length>6?'tst':'')}${L.length?`<small>Invertido en testeos · no se suma a tus egresos</small>${BIG(all,'tst',null,'mid')}<div class="sub">${AS(all)||''}</div>
+   <div class="tb" style="margin-top:8px"><div class="tr" style="--c:1fr auto"><span class="mut">En los ganadores</span><span class="r">${AA(por('ganador'))}</span></div><div class="tr" style="--c:1fr auto"><span class="mut">En los descartados</span><span class="r">${AA(por('descartado'))}</span></div><div class="tr" style="--c:1fr auto"><span class="mut">En los que siguen en curso</span><span class="r">${AA(por('curso'))}</span></div></div>
+   <div class="tb" style="margin-top:10px">${lim(L,full,6).map(tstRow).join('')}</div>${moreRow(L.length,6,'tst',full)}
+   <div class="acts" style="justify-content:flex-start"><button class="btn wh" data-a="addTG" data-p="">${I('plus')}Cargar gasto de testeo</button></div>`
+   :empty('Cargá tus testeos (Testeo 1, Testeo 2…) y cuánto gastaste en cada uno. No se suma a tus egresos.',`<div style="margin-top:10px">${addBtn('addTest','','Crear el primero','wh')}</div>`)}</div>`};
+const rowTG=t=>g=>`<div class="tr" data-rt="edTG" data-p="${esc(t.id+'|'+g.id)}" style="--c:48px minmax(0,1fr) auto"><span class="mut">${fmtFecha(g.f)}</span><span class="d">${esc(g.d)}</span><span class="r"><b>${AM(money(g.m,g.mo||'USD'))}</b></span></div>`;
 /* ---- saldos (cargados a mano) ---- */
 W.heroA=()=>{const a=totalSaldos();return `<div class="card hl"><div class="ch"><span class="t">TOTAL SALDOS</span>${eyeBtn('all')}</div>${BIG(a,'heroA','usd')}<div class="sub">${AS(a,'usd')||''}</div><div style="margin-top:14px"><button class="btn bk" data-a="addSaldo">${I('plus')}Nuevo saldo</button></div></div>`};
 W.saL=(full)=>{const L=D('Saldos');return `<div class="card">${hdr('Cuentas y saldos',addBtn('addSaldo','','Nuevo','wh'))}${L.length?`<div class="tb">${L.map(r=>`<div class="tr sa" data-rt="edSaldo" data-p="${esc(r.id)}"><span class="d2"><span class="d">${esc(r.donde)}</span><span class="d sm2">${esc(r.descripcion||'')}${r.actualizado?(r.descripcion?' · ':'')+'al '+fmtFecha(r.actualizado):''}</span></span><span class="r"><b>${AM(money(r.monto,r.moneda))}</b></span>${editDel('edSaldo','delSaldo',r.id)}</div>`).join('')}</div>`:empty('Todavía no cargaste saldos. Tocá Nuevo y anotá lo que tenés en cada lugar',`<div style="margin-top:10px">${addBtn('addSaldo','','Cargar el primero','wh')}</div>`)}</div>`};
@@ -942,13 +979,13 @@ W.deuMov=(full)=>{const P=PD(),L=pagosP(P),pg=pagadoP(P);
   return `<div class="card">${hdr('Pagos y movimientos',addBtn('payDeu','','Registrar','wh'),'deuMov')}${L.length?`<div class="tb">${lim(L,full,8).map(rowMov).join('')}<div class="tr tot" style="--c:1fr auto"><span>PAGADO</span><span class="r">${AA(pg,'usd')}</span></div></div>${moreRow(L.length,8,'deuMov',full)}`:empty('Sin pagos en este período')}</div>`};
 /* ===== registro de widgets por sección ===== */
 const TITLES={hero:'Balance',cot:'Cotización USD',cIng:'Ingresos (total)',cEgr:'Egresos (total)',pend:'Qué me queda pagar',dist:'Distribución de egresos',evo:'Evolución',dia:'Gasto por día',acum:'Gasto acumulado',lIng:'Lista de ingresos',lEgr:'Lista de egresos',rec:'Recurrentes',saR:'Saldos',deR:'Préstamos y deudas',
- heroI:'Lo que ganaste',porOferta:'Ingresos por oferta',porMercado:'Ingresos por mercado',mov:'Movimientos',diaI:'Ingresos por día',heroE:'Egresos',listaE:'Egresos del período',
+ heroI:'Lo que ganaste',porOferta:'Ingresos por oferta',porMercado:'Ingresos por mercado',mov:'Movimientos',diaI:'Ingresos por día',heroE:'Egresos',listaE:'Egresos del período',tst:'Testeos (aparte del total)',
  heroA:'Total saldos',saL:'Cuentas y saldos',saH:'Historial de saldos',heroD:'Actual préstamos/deudas',dch:'Actual vs total',dD:'Deudas',dP:'Préstamos',dA:'Actual',dT:'Total',heroP:'Pagado en el período',deuEvo:'Deuda mes a mes',deuMov:'Pagos y movimientos'};
 function sectionWidgets(sec){
   const mk=a=>a.map(x=>({id:x[0],d:x[1],m:x[2],r:W[x[0]]}));
   if(sec==='resumen')return mk([['hero','L','F'],['cot','S','F'],['cIng','M','S'],['cEgr','M','S'],['pend','M','F'],['dist','M','F'],['evo','M','F'],['dia','M','F'],['acum','M','F'],['lIng','M','F'],['lEgr','M','F'],['rec','M','F'],['saR','M','F'],['deR','M','F']]);
   if(sec==='ingresos')return mk([['heroI','L','F'],['cot','S','F'],['porOferta','M','F'],['porMercado','M','F'],['mov','F','F'],['diaI','M','F'],['evo','M','F']]);
-  if(sec==='egresos')return mk([['heroE','L','F'],['cot','S','F'],['pend','M','F'],['rec','M','F'],['listaE','F','F'],['dist','M','F'],['dia','M','F'],['acum','F','F']]);
+  if(sec==='egresos')return mk([['heroE','L','F'],['cot','S','F'],['pend','M','F'],['rec','M','F'],['listaE','F','F'],['tst','M','F'],['dist','M','F'],['dia','M','F'],['acum','F','F']]);
   if(sec==='saldos')return mk([['heroA','F','F'],['saL','M','F'],['saH','M','F']]);
   if(sec==='deudas')return mk([['heroP','M','F'],['heroD','M','F'],['deuEvo','F','F'],['deuMov','F','F'],['dD','M','F'],['dP','M','F'],['dch','M','F'],['dA','M','F'],['dT','M','F']]);
   return[]}
@@ -1053,6 +1090,11 @@ ACT.pay=id=>{const e=D('Egresos').find(x=>x.id===id);if(e)up('Egresos',{id,pagad
 ACT.addIng=()=>formIng();ACT.edIng=id=>formIng(id);ACT.delIng=id=>delAsk('¿Eliminar este ingreso?','Ingresos',id);
 ACT.addEgr=()=>formEgr();ACT.edEgr=id=>formEgr(id);ACT.delEgr=id=>delAsk('¿Eliminar este egreso?','Egresos',id);
 ACT.addRec=()=>formRec();ACT.edRec=id=>formRec(id);ACT.delRec=id=>delAsk('¿Eliminar este recurrente? Los egresos que ya cargaste quedan.','Recurrentes',id);
+ACT.verTest=id=>{const t=tests().find(x=>x.id===id);if(!t)return;const g=(t.g||[]).slice().sort((a,b)=>String(b.f).localeCompare(String(a.f)));
+  modal(`<div class="mhead"><span class="t">${esc(t.n)}</span><button class="ib sm" data-a="closeM">${I('x')}</button></div><div class="sub">${TST_E[tstEst(t)]} · no se suma a tus egresos</div>
+   <div class="tb">${g.length?g.map(rowTG(t)).join(''):empty('Sin gastos cargados')}<div class="tr tot" style="--c:1fr auto"><span>TOTAL INVERTIDO</span><span class="r">${AA(tstTot(t))}</span></div></div>
+   <div class="acts"><button class="btn" data-a="edTest" data-p="${esc(t.id)}">Editar testeo</button><button class="btn wh" data-a="addTG" data-p="${esc(t.id)}">Cargar gasto</button></div>`,true)};
+ACT.addTest=()=>formTest();ACT.edTest=id=>formTest(id);ACT.addTG=id=>formTG(id);ACT.edTG=p=>{const[t,g]=String(p).split('|');formTG(t,g)};
 ACT.addSaldo=()=>formSaldo();ACT.edSaldo=id=>formSaldo(id);ACT.delSaldo=id=>delAsk('¿Eliminar este saldo?','Saldos',id);
 ACT.edCot=m=>formCot(m);
 ACT.histCot=()=>{const ms=[...new Set([...D('Cotizaciones').map(c=>c.mes),curMes(),mesAdd(curMes(),1)])].sort().reverse();const g='1fr 120px';
@@ -1174,8 +1216,8 @@ function persModal(){const hoy=todayISO();
   $('#psave',m).onclick=()=>{const f=$('#pf').value,t=$('#pt').value,l=$('#pl').value.trim();if(!f||!t||f>t){toast('Revisá las fechas');return}const p={k:'R',from:f,to:t,label:(l||fmtFecha(f)+'–'+fmtFecha(t)).toUpperCase()};
     const ps=periodos().filter(x=>x.k!=='PERS');setCfg('periodos',[...ps,p,{k:'PERS'}],true);S.per=p;LS.set('per',p);closeModal();render()}}
 /* botón + : cargar lo más usado desde cualquier pantalla */
-const FAB_ITEMS={egresos:['addEgr','Nuevo egreso','egresos'],ingresos:['addIng','Nuevo ingreso','ingresos'],rec:['cargarRec','Cargar recurrentes','repeat'],dup:['dupMes','Duplicar mes','dup'],foto:['foto','Cargar desde una foto','camera'],pago:['payDeu','Registrar pago de deuda','pay'],saldo:['addSaldo','Nuevo saldo','saldos']};
-const FAB_ORDER={resumen:['egresos','ingresos','foto','rec','saldo'],ingresos:['ingresos','foto','egresos'],egresos:['egresos','foto','rec','dup','ingresos'],saldos:['saldo','egresos','ingresos'],deudas:['pago','egresos','ingresos']};
+const FAB_ITEMS={egresos:['addEgr','Nuevo egreso','egresos'],ingresos:['addIng','Nuevo ingreso','ingresos'],rec:['cargarRec','Cargar recurrentes','repeat'],dup:['dupMes','Duplicar mes','dup'],foto:['foto','Cargar desde una foto','camera'],audio:['audio','Cargar con un audio','mic'],pago:['payDeu','Registrar pago de deuda','pay'],saldo:['addSaldo','Nuevo saldo','saldos']};
+const FAB_ORDER={resumen:['egresos','ingresos','foto','audio','rec','saldo'],ingresos:['ingresos','foto','audio','egresos'],egresos:['egresos','foto','audio','rec','dup','ingresos'],saldos:['saldo','egresos','ingresos'],deudas:['pago','egresos','ingresos']};
 function closeFab(){document.body.classList.remove('fab-open')}
 ACT.fab=()=>{const b=document.body;if(b.classList.contains('fab-open')){closeFab();return}
   const o=(FAB_ORDER[S.sec]||FAB_ORDER.resumen).map(k=>FAB_ITEMS[k]);
@@ -1229,7 +1271,8 @@ function settingsHTML(){const L=LS.get('lock',null);const host=(()=>{try{return 
 document.addEventListener('change',e=>{const t=e.target;
   if(t.dataset&&t.dataset.a==='lockTime'){const L=LS.get('lock',null);if(L){L.t=+t.value;LS.set('lock',L);toast('Listo')}}
   if(t.id==='impf'&&t.files[0]){importFile(t.files[0]);t.value=''}
-  if(t.id==='fotof'&&t.files[0]){fotoFile(t.files[0]);t.value=''}});
+  if(t.id==='fotof'&&t.files[0]){fotoFile(t.files[0]);t.value=''}
+  if(t.id==='audf'&&t.files[0]){audFile(t.files[0]);t.value=''}});
 ACT2.syncNow=async()=>{toast('Sincronizando…');await load();render();if(S.live)toast('Listo')};
 ACT2.reconnect=()=>showSetup();
 /* fuerza la versión más nueva: borra solo lo propio de esta app (service worker y caché yhwh-) y recarga. No toca la conexión ni los datos */
@@ -1306,10 +1349,55 @@ async function fotoFile(f){const say=t=>{const m=$('#fotomsg');if(m)m.textConten
     closeModal();setTimeout(()=>fotoForm(r.propuesta),260)}
   catch(e){say('No se pudo: '+e.message)}}
 /* lo que vuelve del servidor se revisa de nuevo y solo completa el formulario: no se guarda nada hasta que tocás Guardar */
-function fotoForm(p){const mon=p.moneda==='ARS'||p.moneda==='USD'?p.moneda:'',f=String(p.fecha||''),conf={alta:'confianza alta',baja:'confianza baja, revisalo bien'}[p.confianza]||'confianza media';
+function fotoForm(p,src){const mon=p.moneda==='ARS'||p.moneda==='USD'?p.moneda:'',f=String(p.fecha||''),conf={alta:'confianza alta',baja:'confianza baja, revisalo bien'}[p.confianza]||'confianza media';
   const pre={descripcion:String(p.descripcion||'').slice(0,80),monto:+p.monto>0?+p.monto:'',moneda:mon,fecha:RE_F.test(f)&&f<=todayISO()?f:'',categoria:cats().some(c=>c.n===p.categoria)?p.categoria:'',cuenta:mon?cuentaPorMoneda(mon):'',
-    aviso:'Leído de la foto ('+conf+'). Revisá todo antes de guardar.'+(p.nota?' '+String(p.nota).slice(0,100):'')};
+    aviso:'Leído '+(src||'de la foto')+' ('+conf+'). Revisá todo antes de guardar.'+(p.nota?' '+String(p.nota).slice(0,100):'')};
   if(p.tipo==='ingreso')formIng(null,pre);else formEgr(null,pre)}
+/* ===== cargar con un audio: hablás, la IA propone, vos confirmás ===== */
+/* el audio se graba (o se elige) en el dispositivo, se pasa a un WAV chico (11 kHz, mono) y el servidor lo manda a Gemini; no se guarda en ningún lado */
+const AUD_MAX=30,AUD_SR=11025,AUD_B64=880000;
+let AREC=null,AUDQ=[],AUDF=false;
+ACT.audio=()=>{AUDQ=[];modal(`<h2>Cargar con un audio</h2><small>Contá el gasto o el ingreso con tu voz (hasta ${AUD_MAX} segundos), por ejemplo: "gasté 50 dólares en Claude Console y cobré 30 mil pesos". La IA entiende monto, moneda y detalle, y te abre el formulario ya completado para que lo revises antes de guardar. El audio no se guarda en ningún lado: se manda a la IA de Google (Gemini) para entenderlo.</small>
+ <div class="acts" style="margin-top:14px"><button class="btn" data-a="closeM">Cancelar</button><button class="btn wh" data-a="audRec" id="audbtn">${I('mic')}<span>Grabar</span></button><label class="btn" style="cursor:pointer">Elegir un audio<input type="file" id="audf" accept="audio/*" style="display:none"></label></div><small id="audmsg" style="display:block;margin-top:10px"></small>`)};
+ACT.audRec=async()=>{const say=t=>{const m=$('#audmsg');if(m)m.textContent=t},lbl=t=>{const b=$('#audbtn span');if(b)b.textContent=t};
+  if(AREC){AREC.stop();return}
+  try{if(!navigator.mediaDevices||!window.MediaRecorder)throw new Error('este navegador no puede grabar: usá "Elegir un audio"');
+    const st=await navigator.mediaDevices.getUserMedia({audio:true}),chunks=[],mr=new MediaRecorder(st),t0=Date.now();AREC=mr;
+    mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+    const tick=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);lbl('Parar ('+s+' s)');if(s>=AUD_MAX&&AREC===mr)mr.stop()},250);
+    mr.onstop=()=>{clearInterval(tick);st.getTracks().forEach(x=>x.stop());if(AREC===mr)AREC=null;if($('#audmsg'))audFile(new Blob(chunks,{type:mr.mimeType||'audio/webm'}))};
+    mr.start();lbl('Parar (0 s)');say('Grabando… hablá y tocá Parar cuando termines')}
+  catch(e){AREC=null;say('No se pudo: '+(e&&e.name==='NotAllowedError'?'no diste permiso para usar el micrófono':e.message))}};
+async function audioAWav(f){
+  if(f.size>25*1024*1024)throw new Error('el audio pesa demasiado');
+  const AC=window.AudioContext||window.webkitAudioContext,OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  if(!AC||!OAC)throw new Error('este navegador no puede procesar audio');
+  const ctx=new AC();let dec;
+  try{dec=await ctx.decodeAudioData(await f.arrayBuffer())}catch(e){throw new Error('no pude abrir ese audio: probá grabarlo desde acá')}finally{if(ctx.close)ctx.close()}
+  if(dec.duration>AUD_MAX+1)throw new Error('el audio dura más de '+AUD_MAX+' segundos');
+  const n=Math.max(1,Math.ceil(dec.duration*AUD_SR)),oc=new OAC(1,n,AUD_SR),src=oc.createBufferSource();src.buffer=dec;src.connect(oc.destination);src.start();
+  const d=(await oc.startRendering()).getChannelData(0),buf=new ArrayBuffer(44+n*2),v=new DataView(buf),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,AUD_SR,true);v.setUint32(28,AUD_SR*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){const x=Math.max(-1,Math.min(1,d[i]||0));v.setInt16(44+i*2,x<0?x*0x8000:x*0x7fff,true)}
+  const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));
+  const b64=btoa(s);if(b64.length>AUD_B64)throw new Error('el audio es demasiado largo');return b64}
+async function audFile(f){const say=t=>{const m=$('#audmsg');if(m)m.textContent=t};
+  try{say('Preparando el audio…');const au=await audioAWav(f);if(!$('#audmsg'))return;
+    if(!await verificar())throw new Error('no pude confirmar que el servidor sea el de esta app');
+    say('Entendiendo el audio con IA… puede tardar unos segundos');
+    const r=await apiPost({op:'audio',audio:au,tipo_audio:'audio/wav',cats:cats().map(c=>c.n)});
+    if(esOtra(r)){otraApp();return}
+    if(r.error==='op desconocida')throw new Error('el servidor todavía no tiene esta función: falta publicar la versión nueva del servidor (Apps Script)');
+    if(!r.ok||!Array.isArray(r.propuestas))throw new Error(r.error||'no se pudo entender el audio');
+    if(!r.propuestas.length)throw new Error('no entendí ningún gasto ni ingreso en el audio: probá de nuevo, más despacio y con el monto y la moneda');
+    AUDQ=r.propuestas.slice(0,5);closeModal();setTimeout(audSiguiente,300)}
+  catch(e){say('No se pudo: '+e.message)}}
+/* con uno solo se abre el formulario; con varios, una lista: tocás uno, lo revisás y guardás, y volvés a la lista */
+function audSiguiente(){if(AUDQ.length===1){const p=AUDQ.shift();AUDF=false;fotoForm(p,'del audio')}else audLista()}
+function audLista(){if(!AUDQ.length)return;
+  modal(`<h2>Entendí ${AUDQ.length} movimientos</h2><small>Tocá uno para revisarlo y cargarlo. Si no querés alguno, descartalo.</small><div class="tb" style="margin-top:10px">${AUDQ.map((p,i)=>`<div class="tr" data-rt="audItem" data-p="${i}" style="--c:minmax(0,1fr) auto"><span class="d2"><span class="d">${esc(p.descripcion||'(sin detalle)')}</span><span class="d sm2">${p.tipo==='ingreso'?'INGRESO':'EGRESO'}</span></span><span class="r"><b>${p.monto>0?esc(money(+p.monto,p.moneda==='ARS'?'ARS':'USD')):'—'}</b></span></div>`).join('')}</div><div class="acts"><button class="btn" data-a="audFin">Descartar el resto</button></div>`)}
+ACT.audItem=i=>{const p=AUDQ[+i];if(!p)return;AUDQ.splice(+i,1);AUDF=false;closeModal();setTimeout(()=>{AUDF=true;fotoForm(p,'del audio')},300)};
+ACT.audFin=()=>{AUDQ=[];AUDF=false;closeModal()};
 
 /* ===== bloqueo (PIN + Face ID) ===== */
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}

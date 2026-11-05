@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-UtqqqVNMzeA2T2kZWziwF+8hvCOqDmbPtBJIq1y9MTo='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-242Z8bWmBekaJ0JFYhWUrHhAtR11Xz1wFwWdHmf5qnM='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -406,7 +406,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelecto
 /* github.io comparte el almacenamiento entre todas las apps del mismo usuario: las claves de esta llevan prefijo para no mezclarse con otras */
 const NS='yhwh.';
 /* se cambia en cada publicación: Ajustes lo muestra para saber qué versión tiene cada dispositivo */
-const VERSION='v8 · 5 nov 2026 · Comisiones netas, Testeos y gráficos';
+const VERSION='v9 · 5 nov 2026 · Comisiones Stripe 5,4%';
 const LS={get(k,d){try{const v=localStorage.getItem(NS+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(NS+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(NS+k)}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf0=new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}),nf2=new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -543,7 +543,7 @@ const mulV=(a,k)=>({usd:a.usd*k,ars:a.ars*k});
 const sumV=(list,f)=>list.reduce((s,r)=>addV(s,f(r)),Z());
 const mesDe=r=>r.mes||String(r.fecha||'').slice(0,7);
 /* comisiones de las plataformas: la planilla guarda el monto BRUTO y la app muestra y suma el NETO. Se aplican según el origen del ingreso (los cargados a mano no tienen) y se cambian en Ajustes */
-const COM_DEF=[{o:'impultienda',m:'ARS',p:6.19,f:0},{o:'stripe',m:'USD',p:6.4,f:0.3},{o:'whop',m:'USD',p:5.99,f:0.3}];
+const COM_DEF=[{o:'impultienda',m:'ARS',p:6.19,f:0},{o:'stripe',m:'USD',p:5.4,f:0.3},{o:'whop',m:'USD',p:5.99,f:0.3}];
 const comis=()=>{const a=cfg('comisiones',null);return Array.isArray(a)?a:COM_DEF};
 const comRule=r=>{const o=String(r.origen||'').toLowerCase();return comis().find(c=>c.o===o&&c.m===(r.moneda||'USD'))};
 const comisionDe=r=>{const c=comRule(r);if(!c)return 0;const m=+r.monto||0;return Math.round(Math.min(m,Math.max(0,m*(+c.p||0)/100+(+c.f||0)))*100)/100};
@@ -1424,7 +1424,7 @@ ACT.audFin=()=>{AUDQ=[];AUDF=false;closeModal()};
 /* ===== comisiones por plataforma ===== */
 ACT2.editCom=()=>{const L=comis().map(c=>({...c})),nom=c=>c.o==='impultienda'?'Impultienda + Mercado Pago (pesos)':c.o==='stripe'?'Impultienda + Stripe (dólares)':c.o==='whop'?'Impultienda + Whop (dólares)':c.o;
   form({title:'Comisiones',fields:L.flatMap((c,i)=>[{k:'p'+i,l:nom(c)+': % por venta',t:'number',v:c.p,half:1},{k:'f'+i,l:'Fijo por venta ('+(c.m==='ARS'?'pesos':'US$')+')',t:'number',v:c.f,half:1}]),
-   extra:'<div class="sub" style="margin-top:6px">Impultienda 2% + Mercado Pago 4,19% = 6,19%. En Stripe y Whop va el 2% de Impultienda más lo que cobra cada una (tarjeta internacional) y los 0,30 fijos. Chequealo con una venta real.</div>',
+   extra:'<div class="sub" style="margin-top:6px">Impultienda 2% + Mercado Pago 4,19% = 6,19%. Stripe: 2% de Impultienda + 3,4% de Stripe = 5,4%, más 0,30 fijos. Whop: 2% + 3,99% = 5,99%, más 0,30 fijos. Chequealo con una venta real.</div>',
    onOk:o=>{const R=L.map((c,i)=>({o:c.o,m:c.m,p:Math.min(50,Math.max(0,+o['p'+i]||0)),f:Math.min(100000,Math.max(0,+o['f'+i]||0))}));setCfg('comisiones',R);toast('Comisiones guardadas')}})};
 
 /* ===== bloqueo (PIN + Face ID) ===== */

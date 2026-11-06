@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-242Z8bWmBekaJ0JFYhWUrHhAtR11Xz1wFwWdHmf5qnM='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-1u5/CxnNOhXjcT1KecFwiqnzXxJifQDU12dkPiTyYKU='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -406,7 +406,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelecto
 /* github.io comparte el almacenamiento entre todas las apps del mismo usuario: las claves de esta llevan prefijo para no mezclarse con otras */
 const NS='yhwh.';
 /* se cambia en cada publicación: Ajustes lo muestra para saber qué versión tiene cada dispositivo */
-const VERSION='v9 · 5 nov 2026 · Comisiones Stripe 5,4%';
+const VERSION='v10 · 5 nov 2026 · Evolución diaria y mensual en Ingresos y Egresos';
 const LS={get(k,d){try{const v=localStorage.getItem(NS+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(NS+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(NS+k)}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf0=new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}),nf2=new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -1004,8 +1004,8 @@ const TITLES={hero:'Balance',cot:'Cotización USD',cIng:'Ingresos (total)',cEgr:
 function sectionWidgets(sec){
   const mk=a=>a.map(x=>({id:x[0],d:x[1],m:x[2],r:W[x[0]]}));
   if(sec==='resumen')return mk([['hero','L','F'],['cot','S','F'],['cIng','M','S'],['cEgr','M','S'],['pend','M','F'],['dist','M','F'],['evo','M','F'],['acum','M','F'],['lIng','M','F'],['lEgr','M','F'],['rec','M','F'],['saR','M','F'],['deR','M','F']]);
-  if(sec==='ingresos')return mk([['heroI','L','F'],['cot','S','F'],['porOferta','M','F'],['porMercado','M','F'],['mov','F','F'],['diaI','M','F'],['evo','M','F']]);
-  if(sec==='egresos')return mk([['heroE','L','F'],['cot','S','F'],['pend','M','F'],['rec','M','F'],['listaE','F','F'],['tst','M','F'],['dist','M','F'],['acum','F','F']]);
+  if(sec==='ingresos')return mk([['heroI','L','F'],['cot','S','F'],['porOferta','M','F'],['porMercado','M','F'],['mov','F','F'],['acum','F','F'],['evo','F','F']]);
+  if(sec==='egresos')return mk([['heroE','L','F'],['cot','S','F'],['pend','M','F'],['rec','M','F'],['listaE','F','F'],['tst','M','F'],['dist','M','F'],['acum','F','F'],['evo','F','F']]);
   if(sec==='saldos')return mk([['heroA','F','F'],['saL','M','F'],['saH','M','F']]);
   if(sec==='deudas')return mk([['heroP','M','F'],['heroD','M','F'],['deuEvo','F','F'],['deuMov','F','F'],['dD','M','F'],['dP','M','F'],['dch','M','F'],['dA','M','F'],['dT','M','F']]);
   return[]}

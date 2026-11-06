@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-1u5/CxnNOhXjcT1KecFwiqnzXxJifQDU12dkPiTyYKU='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-fFYuVQI/jLCmr8an9GCqrZouQQ0pyh/ByvIdWtCsPP4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mis Finanzas YHWH</title>
@@ -406,7 +406,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelecto
 /* github.io comparte el almacenamiento entre todas las apps del mismo usuario: las claves de esta llevan prefijo para no mezclarse con otras */
 const NS='yhwh.';
 /* se cambia en cada publicación: Ajustes lo muestra para saber qué versión tiene cada dispositivo */
-const VERSION='v10 · 5 nov 2026 · Evolución diaria y mensual en Ingresos y Egresos';
+const VERSION='v11 · 5 nov 2026 · Testeos con ingresos netos y audio';
 const LS={get(k,d){try{const v=localStorage.getItem(NS+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(NS+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(NS+k)}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf0=new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}),nf2=new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -910,48 +910,73 @@ W.heroE=()=>{const P=PD(),L=egresosP(P),t=sumV(L,vEgr);const[pg,n]=cnt(L);
   return `<div class="card hl"><div class="ch"><span class="t">${heroTitle('EGRESOS',P)}</span>${eyeBtn('all')}</div>${BIG(t,'heroE')}<div class="sub">${AS(t)||''}${AS(t)?' · ':''}${pg} de ${n} pagados</div>
   <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn bk" data-a="addEgr">${I('plus')}Nuevo egreso</button><button class="btn out" data-a="cargarRec" data-p="${monthOfP(P)}">${I('repeat')}Cargar recurrentes</button><button class="btn out" data-a="dupMes">${I('dup')}Duplicar mes</button></div></div>`};
 W.listaE=(full)=>{const L=egresosP(PD());return `<div class="card">${hdr('Egresos del período',addBtn('addEgr','','Nuevo','wh'),'listaE')}${L.length?`<small>${cnt(L)[0]} de ${L.length} pagados</small>`:''}${egrTable(L,full,10,'Sin egresos en este período','listaE')}${L.length?totEgrRow(L,'TOTAL PAGADO'):''}</div>`};
-/* ---- testeos: plata invertida en pruebas (Wave Speed, Claude Console, etc.). Vive aparte: NUNCA se suma a los egresos ni al balance ---- */
+/* ---- testeos: plata invertida y ganada en pruebas (Testeo 1, Testeo 2…). Vive aparte: NUNCA se suma a egresos, ingresos ni balance ---- */
 const TST_E={curso:'EN CURSO',ganador:'GANADOR',descartado:'DESCARTADO'};
+const TST_C={pos:'#2ee6a6',neg:'#ff6b6b'};
 const tests=()=>{const a=cfg('testeos',[]);return Array.isArray(a)?a:[]};
 const tstEst=t=>TST_E[t.e]?t.e:'curso';
 const vTG=g=>conv(g.m,g.mo||'USD',String(g.f||'').slice(0,7)||curMes());
 const tstTot=t=>sumV(t.g||[],vTG);
+const tstIng=t=>sumV(t.i||[],vTG);
+const tstRes=t=>subV(tstIng(t),tstTot(t));
+const tstCol=v=>(S.cur==='ars'?v.ars:S.cur==='usd'?v.usd:(mainC()==='usd'?v.usd:v.ars))>=0?TST_C.pos:TST_C.neg;
+const tstChip=t=>{const e=tstEst(t),c=e==='ganador'?TST_C.pos:e==='descartado'?TST_C.neg:'#9a9ab0';return `<span class="chip" style="background:${c}22;color:${c}">${TST_E[e]}</span>`};
 function saveTests(a){if(JSON.stringify(a).length>28000){toast('No entran más datos de testeos: borrá testeos viejos');return false}setCfg('testeos',a);return true}
 const tstKey=x=>String(x||'').trim().toLowerCase();
-/* testeos que se ven: los cargados a mano + uno por cada descripción (Testeo 1, Testeo 2…) de los egresos de categoría Testeos */
-function testsAll(){const L=tests().map(t=>({...t,g:(t.g||[]).slice()}));
-  egrRaw().filter(esTest).forEach(e=>{const k=tstKey(e.descripcion)||'testeos';let t=L.find(x=>tstKey(x.n)===k);
-    if(!t){t={id:'a:'+k,n:String(e.descripcion||'').trim()||'Testeos',e:'curso',g:[],auto:1};L.push(t)}
+const ofertaDe=r=>String(r.descripcion||'').replace(/^\s*venta\s+/i,'').trim();
+const tstNum=n=>{const m=/^\s*testeo\s+(\d+)\s*$/i.exec(String(n||''));return m?+m[1]:0};
+/* los testeos que se ven: los cargados a mano + uno por cada descripción de los egresos de categoría Testeos + uno por cada oferta o tienda nueva que vende (Impultienda, Stripe, Whop) */
+function testsAll(){const L=tests().map(t=>({...t,g:(t.g||[]).map(x=>({...x})),i:(t.i||[]).map(x=>({...x}))})),nom=t=>[tstKey(t.n),tstKey(t.k)].filter(Boolean);
+  egrRaw().filter(esTest).forEach(e=>{const k=tstKey(e.descripcion)||'testeos';let t=L.find(x=>nom(x).includes(k));
+    if(!t){t={id:'a:'+k,n:String(e.descripcion||'').trim()||'Testeos',e:'curso',g:[],i:[],auto:1};L.push(t)}
     t.g.push({id:e.id,d:e.descripcion||'Egreso',m:e.monto,mo:e.moneda||'USD',f:e.fecha,egr:1})});
+  const auto=comis().map(c=>c.o),nuevos={};
+  ingAll().filter(r=>auto.includes(String(r.origen||'').toLowerCase())&&ofertaDe(r)).forEach(r=>{const k=tstKey(ofertaDe(r));
+    const cand=L.filter(x=>nom(x).includes(k));let t=cand.find(x=>(!x.d||r.fecha>=x.d)&&(!x.h||r.fecha<=x.h));
+    if(!t&&cand.length)return;
+    if(!t)t=nuevos[k]||(nuevos[k]={id:'v:'+k,n:'',k:ofertaDe(r),e:'curso',g:[],i:[],auto:1,f0:r.fecha});
+    if(t.f0&&r.fecha<t.f0)t.f0=r.fecha;
+    t.i.push({id:r.id,d:ofertaDe(r),m:netoIng(r),mo:r.moneda||'USD',f:r.fecha,vta:1})});
+  let n=L.reduce((m,t)=>Math.max(m,tstNum(t.n)),0);
+  Object.values(nuevos).sort((a,b)=>String(a.f0).localeCompare(String(b.f0))||a.k.localeCompare(b.k)).forEach(t=>{t.n='Testeo '+(++n);L.push(t)});
   return L.sort((a,b)=>String(a.n).localeCompare(String(b.n),'es',{numeric:true}))}
-function formTest(id){const v=id&&String(id).startsWith('a:')?testsAll().find(x=>x.id===id):null,t=id&&!v?tests().find(x=>x.id===id):null;
+/* un testeo que todavía no está guardado (sale de egresos o de ventas) se guarda recién cuando le cargás algo o lo editás */
+function materTest(a,id,L){let d=a.find(x=>x.id===id);if(!d){const v=L.find(x=>x.id===id);if(!v)return null;d={id:uid(),n:v.n,e:v.e,k:v.k||'',g:[],i:[]};a.push(d)}d.g=d.g||[];d.i=d.i||[];return d}
+const tstVirt=id=>/^[av]:/.test(String(id||''));
+function formTest(id){const v=id&&tstVirt(id)?testsAll().find(x=>x.id===id):null,t=id&&!v?tests().find(x=>x.id===id):null;
   form({title:t?'Editar testeo':'Nuevo testeo',fields:[
    {k:'n',l:'Nombre del testeo',v:t?t.n:(v&&v.n),req:1,ph:'Ej: Testeo 2'},
-   {k:'e',l:'Estado',t:'select',opts:[{v:'curso',l:'En curso'},{v:'ganador',l:'Ganador'},{v:'descartado',l:'Descartado'}],v:t?tstEst(t):'curso'}],
-   onOk:o=>{const a=tests().map(x=>({...x})),n=o.n.slice(0,40);if(t){const x=a.find(y=>y.id===t.id);if(x){x.n=n;x.e=o.e}}else a.push({id:uid(),n,e:o.e,g:[]});return saveTests(a)},
+   {k:'e',l:'Estado (lo decidís vos)',t:'select',opts:[{v:'curso',l:'En curso'},{v:'ganador',l:'Ganador'},{v:'descartado',l:'Perdedor / descartado'}],v:t?tstEst(t):'curso'},
+   {k:'k',l:'Oferta o tienda de las ventas (para vincular los ingresos)',v:t?t.k:(v&&v.k),ph:'Ej: Protocolo Hormona Dormida +40'},
+   {k:'d',l:'Desde (opcional)',t:'date',v:t&&t.d||'',half:1},{k:'h',l:'Hasta (opcional)',t:'date',v:t&&t.h||'',half:1}],
+   extra:'<div class="sub" style="margin-top:6px">Las ventas con ese nombre se suman solas a este testeo, ya netas de comisión. Siguen contando en tus ingresos reales.</div>',
+   onOk:o=>{const a=JSON.parse(JSON.stringify(tests())),n=o.n.slice(0,40),k=String(o.k||'').slice(0,60);if(t){const x=a.find(y=>y.id===t.id);if(x){x.n=n;x.e=o.e;x.k=k;x.d=o.d||'';x.h=o.h||''}}else a.push({id:uid(),n,e:o.e,k,d:o.d||'',h:o.h||'',g:v?[]:[],i:[]});return saveTests(a)},
    onDel:t?()=>saveTests(tests().filter(x=>x.id!==t.id)):null})}
-function formTG(tid,gid){const L=testsAll();if(!L.length){toast('Primero creá un testeo');formTest();return}
-  const t0=L.find(x=>x.id===tid)||L[L.length-1],g=gid?(t0.g||[]).find(x=>x.id===gid&&!x.egr):null;
+/* gasto (kind g) o ingreso (kind i) cargado a mano en un testeo */
+function formTM(kind,tid,gid){const L=testsAll();if(!L.length){toast('Primero creá un testeo');formTest();return}
+  const gasto=kind==='g',t0=L.find(x=>x.id===tid)||L[L.length-1],g=gid?(t0[kind]||[]).find(x=>x.id===gid&&!x.egr&&!x.vta):null;
   const back=id=>setTimeout(()=>ACT.verTest(id),330);
-  form({title:g?'Editar gasto del testeo':'Gasto de testeo',fields:[
+  form({title:g?(gasto?'Editar gasto del testeo':'Editar ingreso del testeo'):(gasto?'Gasto de testeo':'Ingreso de testeo'),fields:[
    {k:'t',l:'Testeo',t:'select',opts:L.map(x=>({v:x.id,l:x.n})),v:t0.id},
-   {k:'d',l:'En qué lo gastaste',v:g&&g.d,req:1,ph:'Ej: Wave Speed, Claude Console',list:uniq(L.flatMap(x=>(x.g||[]).map(y=>y.d))).slice(0,60)},
-   {k:'m',l:'Monto',t:'number',v:g?g.m:'',ph:'0',half:1},{k:'mo',l:'Moneda',t:'select',opts:monedaOpts('USD'),v:g?g.mo:'USD',half:1},
+   {k:'d',l:gasto?'En qué lo gastaste':'De qué es el ingreso',v:g&&g.d,req:1,ph:gasto?'Ej: Anuncios Meta, Kie, voces':'Ej: Venta Protocolo +40',list:uniq(L.flatMap(x=>(x[kind]||[]).map(y=>y.d))).slice(0,60)},
+   {k:'m',l:gasto?'Monto':'Monto neto (lo que te queda)',t:'number',v:g?g.m:'',ph:'0',half:1},{k:'mo',l:'Moneda',t:'select',opts:monedaOpts('USD'),v:g?g.mo:'USD',half:1},
    {k:'f',l:'Fecha',t:'date',v:g?g.f:todayISO(),req:1}],
-   extra:'<div class="sub" style="margin-top:6px">Esto no se suma a tus egresos ni al balance: es solo para saber cuánto invertiste en cada testeo.</div>',
+   extra:'<div class="sub" style="margin-top:6px">Esto no se suma a tus egresos, ingresos ni balance: es solo para saber cuánto invertiste y ganaste en cada testeo.</div>',
    onOk:o=>{if(!(o.m>0)){toast('Poné un monto mayor a cero');return false}
-     const a=tests().map(x=>({...x,g:(x.g||[]).filter(y=>!g||y.id!==g.id)}));let dst=a.find(x=>x.id===o.t);
-     if(!dst){const vt=L.find(x=>x.id===o.t);if(!vt)return false;dst={id:uid(),n:vt.n,e:vt.e,g:[]};a.push(dst)}
-     dst.g=dst.g||[];dst.g.unshift({id:g?g.id:uid(),d:o.d.slice(0,60),m:o.m,mo:o.mo,f:o.f});if(!saveTests(a))return false;back(dst.id)},
-   onDel:g?()=>{if(saveTests(tests().map(x=>({...x,g:(x.g||[]).filter(y=>y.id!==g.id)}))))back(t0.id)}:null})}
-const tstRow=t=>{const n=(t.g||[]).length;return `<div class="tr tst" data-rt="verTest" data-p="${esc(t.id)}" style="--c:minmax(0,1fr) auto"><span class="d2"><span class="d">${esc(t.n)}</span><span class="d sm2">${TST_E[tstEst(t)]} · ${n} ${n===1?'gasto':'gastos'}</span></span><span class="r"><b>${AA(tstTot(t))}</b></span></div>`};
-W.tst=(full)=>{const L=testsAll(),por=e=>L.filter(t=>tstEst(t)===e).reduce((s,t)=>addV(s,tstTot(t)),Z()),all=L.reduce((s,t)=>addV(s,tstTot(t)),Z());
-  return `<div class="card">${hdr('Testeos',addBtn('addTest','','Nuevo testeo','wh'),L.length>6?'tst':'')}${L.length?`<small>Invertido en testeos · no se suma a tus egresos</small>${BIG(all,'tst',null,'mid')}<div class="sub">${AS(all)||''}</div>
-   <div class="tb" style="margin-top:8px"><div class="tr" style="--c:1fr auto"><span class="mut">En los ganadores</span><span class="r">${AA(por('ganador'))}</span></div><div class="tr" style="--c:1fr auto"><span class="mut">En los descartados</span><span class="r">${AA(por('descartado'))}</span></div><div class="tr" style="--c:1fr auto"><span class="mut">En los que siguen en curso</span><span class="r">${AA(por('curso'))}</span></div></div>
+     const a=JSON.parse(JSON.stringify(tests()));a.forEach(x=>{x[kind]=(x[kind]||[]).filter(y=>!g||y.id!==g.id)});const dst=materTest(a,o.t,L);if(!dst)return false;
+     dst[kind].unshift({id:g?g.id:uid(),d:o.d.slice(0,60),m:o.m,mo:o.mo,f:o.f});if(!saveTests(a))return false;back(dst.id)},
+   onDel:g?()=>{const a=JSON.parse(JSON.stringify(tests()));a.forEach(x=>{x[kind]=(x[kind]||[]).filter(y=>y.id!==g.id)});if(saveTests(a))back(t0.id)}:null})}
+const formTG=(tid,gid)=>formTM('g',tid,gid),formTI=(tid,gid)=>formTM('i',tid,gid);
+const tstRow=t=>{const gt=tstTot(t),it=tstIng(t),res=subV(it,gt),ng=(t.g||[]).length,ni=(t.i||[]).length;
+  return `<div class="tr tst" data-rt="verTest" data-p="${esc(t.id)}" style="--c:minmax(0,1fr) auto"><span class="d2"><span class="d">${esc(t.n)} ${tstChip(t)}</span><span class="d sm2">Egresó ${AA(gt)} · Ingresó ${AA(it)}</span><span class="d sm2">${ng} ${ng===1?'gasto':'gastos'} · ${ni} ${ni===1?'ingreso':'ingresos'}${t.k?' · '+esc(t.k):''}</span></span><span class="r"><b style="color:${tstCol(res)}">${AA(res)}</b></span></div>`};
+W.tst=(full)=>{const L=testsAll(),gt=L.reduce((s,t)=>addV(s,tstTot(t)),Z()),it=L.reduce((s,t)=>addV(s,tstIng(t)),Z()),res=subV(it,gt);
+  return `<div class="card">${hdr('Testeos',addBtn('addTest','','Nuevo testeo','wh'),L.length>6?'tst':'')}${L.length?`<small>Tablero aparte: no se suma a tus egresos, ingresos ni balance</small>
+   <div class="tb" style="margin-top:8px"><div class="tr" style="--c:1fr auto"><span class="mut">Egresó en testeos</span><span class="r"><b>${AA(gt)}</b></span></div><div class="tr" style="--c:1fr auto"><span class="mut">Ingresó (neto de comisiones)</span><span class="r"><b>${AA(it)}</b></span></div><div class="tr tot" style="--c:1fr auto"><span>Resultado</span><span class="r" style="color:${tstCol(res)}">${AA(res)}</span></div></div>
    <div class="tb" style="margin-top:10px">${lim(L,full,6).map(tstRow).join('')}</div>${moreRow(L.length,6,'tst',full)}
-   <div class="acts" style="justify-content:flex-start"><button class="btn wh" data-a="addTG" data-p="">${I('plus')}Cargar gasto de testeo</button></div>`
-   :empty('Cargá tus testeos (Testeo 1, Testeo 2…) y cuánto gastaste en cada uno. No se suma a tus egresos.',`<div style="margin-top:10px">${addBtn('addTest','','Crear el primero','wh')}</div>`)}</div>`};
+   <div class="acts" style="justify-content:flex-start"><button class="btn wh" data-a="addTG" data-p="">${I('plus')}Cargar gasto</button><button class="btn" data-a="addTI" data-p="">${I('plus')}Cargar ingreso</button></div>`
+   :empty('Cargá tus testeos (Testeo 1, Testeo 2…) con lo que gastaste y lo que ingresó en cada uno. No se suma a tus egresos.',`<div style="margin-top:10px">${addBtn('addTest','','Crear el primero','wh')}</div>`)}</div>`};
 const rowTG=t=>g=>`<div class="tr" data-rt="${g.egr?'edEgr':'edTG'}" data-p="${esc(g.egr?g.id:t.id+'|'+g.id)}" style="--c:48px minmax(0,1fr) auto"><span class="mut">${fmtFecha(g.f)}</span><span class="d2"><span class="d">${esc(g.d)}</span>${g.egr?'<span class="d sm2">cargado como egreso</span>':''}</span><span class="r"><b>${AM(money(g.m,g.mo||'USD'))}</b></span></div>`;
+const rowTI=t=>g=>`<div class="tr" data-rt="${g.vta?'edIng':'edTI'}" data-p="${esc(g.vta?g.id:t.id+'|'+g.id)}" style="--c:48px minmax(0,1fr) auto"><span class="mut">${fmtFecha(g.f)}</span><span class="d2"><span class="d">${esc(g.d)}</span>${g.vta?'<span class="d sm2">venta cargada · neta de comisión</span>':''}</span><span class="r"><b>${AM(money(g.m,g.mo||'USD'))}</b></span></div>`;
 /* ---- saldos (cargados a mano) ---- */
 W.heroA=()=>{const a=totalSaldos();return `<div class="card hl"><div class="ch"><span class="t">TOTAL SALDOS</span>${eyeBtn('all')}</div>${BIG(a,'heroA','usd')}<div class="sub">${AS(a,'usd')||''}</div><div style="margin-top:14px"><button class="btn bk" data-a="addSaldo">${I('plus')}Nuevo saldo</button></div></div>`};
 W.saL=(full)=>{const L=D('Saldos');return `<div class="card">${hdr('Cuentas y saldos',addBtn('addSaldo','','Nuevo','wh'))}${L.length?`<div class="tb">${L.map(r=>`<div class="tr sa" data-rt="edSaldo" data-p="${esc(r.id)}"><span class="d2"><span class="d">${esc(r.donde)}</span><span class="d sm2">${esc(r.descripcion||'')}${r.actualizado?(r.descripcion?' · ':'')+'al '+fmtFecha(r.actualizado):''}</span></span><span class="r"><b>${AM(money(r.monto,r.moneda))}</b></span>${editDel('edSaldo','delSaldo',r.id)}</div>`).join('')}</div>`:empty('Todavía no cargaste saldos. Tocá Nuevo y anotá lo que tenés en cada lugar',`<div style="margin-top:10px">${addBtn('addSaldo','','Cargar el primero','wh')}</div>`)}</div>`};
@@ -1112,11 +1137,14 @@ ACT.pay=id=>{const e=D('Egresos').find(x=>x.id===id);if(e)up('Egresos',{id,pagad
 ACT.addIng=()=>formIng();ACT.edIng=id=>formIng(id);ACT.delIng=id=>delAsk('¿Eliminar este ingreso?','Ingresos',id);
 ACT.addEgr=()=>formEgr();ACT.edEgr=id=>formEgr(id);ACT.delEgr=id=>delAsk('¿Eliminar este egreso?','Egresos',id);
 ACT.addRec=()=>formRec();ACT.edRec=id=>formRec(id);ACT.delRec=id=>delAsk('¿Eliminar este recurrente? Los egresos que ya cargaste quedan.','Recurrentes',id);
-ACT.verTest=id=>{const t=testsAll().find(x=>x.id===id);if(!t)return;const g=(t.g||[]).slice().sort((a,b)=>String(b.f).localeCompare(String(a.f)));
-  modal(`<div class="mhead"><span class="t">${esc(t.n)}</span><button class="ib sm" data-a="closeM">${I('x')}</button></div><div class="sub">${TST_E[tstEst(t)]} · no se suma a tus egresos</div>
-   <div class="tb">${g.length?g.map(rowTG(t)).join(''):empty('Sin gastos cargados')}<div class="tr tot" style="--c:1fr auto"><span>TOTAL INVERTIDO</span><span class="r">${AA(tstTot(t))}</span></div></div>
-   <div class="acts"><button class="btn" data-a="edTest" data-p="${esc(t.id)}">Editar testeo</button><button class="btn wh" data-a="addTG" data-p="${esc(t.id)}">Cargar gasto</button></div>`,true)};
-ACT.addTest=()=>formTest();ACT.edTest=id=>formTest(id);ACT.addTG=id=>formTG(id);ACT.edTG=p=>{const[t,g]=String(p).split('|');formTG(t,g)};
+ACT.verTest=id=>{const t=testsAll().find(x=>x.id===id);if(!t)return;const ord=(a,b)=>String(b.f).localeCompare(String(a.f)),g=(t.g||[]).slice().sort(ord),ing=(t.i||[]).slice().sort(ord),gt=tstTot(t),it=tstIng(t),res=subV(it,gt),rg=t.d||t.h?' · del '+(t.d?fmtFecha(t.d):'…')+' al '+(t.h?fmtFecha(t.h):'hoy'):'';
+  modal(`<div class="mhead"><span class="t">${esc(t.n)} ${tstChip(t)}</span><button class="ib sm" data-a="closeM">${I('x')}</button></div>
+   <div class="sub">${t.k?'Ventas de «'+esc(t.k)+'»'+rg+' · ':''}no se suma a tus egresos ni a tus ingresos</div>
+   <div class="tb" style="margin-top:8px"><div class="tr" style="--c:1fr auto"><span class="mut">Egresó</span><span class="r"><b>${AA(gt)}</b></span></div><div class="tr" style="--c:1fr auto"><span class="mut">Ingresó (neto de comisiones)</span><span class="r"><b>${AA(it)}</b></span></div><div class="tr tot" style="--c:1fr auto"><span>Resultado</span><span class="r" style="color:${tstCol(res)}">${AA(res)}</span></div></div>
+   <small style="display:block;margin:14px 0 4px">GASTOS</small><div class="tb">${g.length?g.map(rowTG(t)).join(''):empty('Sin gastos cargados')}<div class="tr tot" style="--c:1fr auto"><span>TOTAL EGRESADO</span><span class="r">${AA(gt)}</span></div></div>
+   <small style="display:block;margin:14px 0 4px">INGRESOS (NETOS DE COMISIÓN)</small><div class="tb">${ing.length?ing.map(rowTI(t)).join(''):empty('Sin ingresos todavía')}<div class="tr tot" style="--c:1fr auto"><span>TOTAL INGRESADO</span><span class="r">${AA(it)}</span></div></div>
+   <div class="acts" style="flex-wrap:wrap"><button class="btn wh" data-a="tAudio" data-p="${esc(t.id)}|gasto">${I('mic')}Gasto por audio</button><button class="btn wh" data-a="tAudio" data-p="${esc(t.id)}|ingreso">${I('mic')}Ingreso por audio</button><button class="btn" data-a="addTG" data-p="${esc(t.id)}">Gasto a mano</button><button class="btn" data-a="addTI" data-p="${esc(t.id)}">Ingreso a mano</button><button class="btn" data-a="edTest" data-p="${esc(t.id)}">Editar testeo</button></div>`,true)};
+ACT.addTest=()=>formTest();ACT.edTest=id=>formTest(id);ACT.addTG=id=>formTG(id);ACT.edTG=p=>{const[t,g]=String(p).split('|');formTG(t,g)};ACT.addTI=id=>formTI(id);ACT.edTI=p=>{const[t,g]=String(p).split('|');formTI(t,g)};
 ACT.addSaldo=()=>formSaldo();ACT.edSaldo=id=>formSaldo(id);ACT.delSaldo=id=>delAsk('¿Eliminar este saldo?','Saldos',id);
 ACT.edCot=m=>formCot(m);
 ACT.histCot=()=>{const ms=[...new Set([...D('Cotizaciones').map(c=>c.mes),curMes(),mesAdd(curMes(),1)])].sort().reverse();const g='1fr 120px';
@@ -1380,8 +1408,9 @@ function fotoForm(p,src){const mon=p.moneda==='ARS'||p.moneda==='USD'?p.moneda:'
 /* el audio se graba (o se elige) en el dispositivo, se pasa a un WAV chico (11 kHz, mono) y el servidor lo manda a Gemini; no se guarda en ningún lado */
 const AUD_MAX=30,AUD_SR=11025,AUD_B64=880000;
 let AREC=null,AUDQ=[],AUDF=false;
-ACT.audio=()=>{AUDQ=[];modal(`<h2>Cargar con un audio</h2><small>Contá el gasto o el ingreso con tu voz (hasta ${AUD_MAX} segundos), por ejemplo: "gasté 50 dólares en Claude Console y cobré 30 mil pesos". La IA entiende monto, moneda y detalle, y te abre el formulario ya completado para que lo revises antes de guardar. El audio no se guarda en ningún lado: se manda a la IA de Google (Gemini) para entenderlo.</small>
- <div class="acts" style="margin-top:14px"><button class="btn" data-a="closeM">Cancelar</button><button class="btn wh" data-a="audRec" id="audbtn">${I('mic')}<span>Grabar</span></button><label class="btn" style="cursor:pointer">Elegir un audio<input type="file" id="audf" accept="audio/*" style="display:none"></label></div><small id="audmsg" style="display:block;margin-top:10px"></small>`)};
+function audioModal(){AUDQ=[];modal(`<h2>${TAUD?(TAUD.modo==='ingreso'?'Ingreso':'Gasto')+' por audio':'Cargar con un audio'}</h2>${TAUD?`<div class="sub">Se carga en el testeo «${esc(TAUD.n)}», no en tus egresos.</div>`:''}<small>Contá el gasto o el ingreso con tu voz (hasta ${AUD_MAX} segundos), por ejemplo: "gasté 50 dólares en Claude Console y cobré 30 mil pesos". La IA entiende monto, moneda y detalle, y te abre el formulario ya completado para que lo revises antes de guardar. El audio no se guarda en ningún lado: se manda a la IA de Google (Gemini) para entenderlo.</small>
+ <div class="acts" style="margin-top:14px"><button class="btn" data-a="closeM">Cancelar</button><button class="btn wh" data-a="audRec" id="audbtn">${I('mic')}<span>Grabar</span></button><label class="btn" style="cursor:pointer">Elegir un audio<input type="file" id="audf" accept="audio/*" style="display:none"></label></div><small id="audmsg" style="display:block;margin-top:10px"></small>`)}
+ACT.audio=()=>{TAUD=null;audioModal()};
 ACT.audRec=async()=>{const say=t=>{const m=$('#audmsg');if(m)m.textContent=t},lbl=t=>{const b=$('#audbtn span');if(b)b.textContent=t};
   if(AREC){AREC.stop();return}
   try{if(!navigator.mediaDevices||!window.MediaRecorder)throw new Error('este navegador no puede grabar: usá "Elegir un audio"');
@@ -1413,6 +1442,7 @@ async function audFile(f){const say=t=>{const m=$('#audmsg');if(m)m.textContent=
     if(r.error==='op desconocida')throw new Error('el servidor todavía no tiene esta función: falta publicar la versión nueva del servidor (Apps Script)');
     if(!r.ok||!Array.isArray(r.propuestas))throw new Error(r.error||'no se pudo entender el audio');
     if(!r.propuestas.length)throw new Error('no entendí ningún gasto ni ingreso en el audio: probá de nuevo, más despacio y con el monto y la moneda');
+    if(TAUD){const ta=TAUD;closeModal();setTimeout(()=>tstAudioLista(r.propuestas,ta),300);return}
     AUDQ=r.propuestas.slice(0,5);closeModal();setTimeout(audSiguiente,300)}
   catch(e){say('No se pudo: '+e.message)}}
 /* con uno solo se abre el formulario; con varios, una lista: tocás uno, lo revisás y guardás, y volvés a la lista */
@@ -1426,6 +1456,22 @@ ACT2.editCom=()=>{const L=comis().map(c=>({...c})),nom=c=>c.o==='impultienda'?'I
   form({title:'Comisiones',fields:L.flatMap((c,i)=>[{k:'p'+i,l:nom(c)+': % por venta',t:'number',v:c.p,half:1},{k:'f'+i,l:'Fijo por venta ('+(c.m==='ARS'?'pesos':'US$')+')',t:'number',v:c.f,half:1}]),
    extra:'<div class="sub" style="margin-top:6px">Impultienda 2% + Mercado Pago 4,19% = 6,19%. Stripe: 2% de Impultienda + 3,4% de Stripe = 5,4%, más 0,30 fijos. Whop: 2% + 3,99% = 5,99%, más 0,30 fijos. Chequealo con una venta real.</div>',
    onOk:o=>{const R=L.map((c,i)=>({o:c.o,m:c.m,p:Math.min(50,Math.max(0,+o['p'+i]||0)),f:Math.min(100000,Math.max(0,+o['f'+i]||0))}));setCfg('comisiones',R);toast('Comisiones guardadas')}})};
+/* ===== audio dentro de un testeo: los gastos o ingresos van al testeo, no a los egresos generales ===== */
+let TAUD=null,TQ=[],TQT=null;
+ACT.tAudio=p=>{const[tid,modo]=String(p).split('|'),t=testsAll().find(x=>x.id===tid);if(!t)return;TAUD={tid,modo:modo==='ingreso'?'ingreso':'gasto',n:t.n};audioModal()};
+function tstAudioLista(props,ta){const t=testsAll().find(x=>x.id===ta.tid);TQT=ta.tid;
+  TQ=props.slice(0,5).map(p=>{const mon=p.moneda==='ARS'||p.moneda==='USD'?p.moneda:'USD',f=String(p.fecha||''),tipo=ta.modo==='ingreso'?'ingreso':'gasto',
+    fe=RE_F.test(f)&&f<=todayISO()?f:(t&&t.d&&t.d<=todayISO()?t.d:todayISO());
+    return{tipo,d:String(p.descripcion||'').slice(0,60)||(tipo==='ingreso'?'Ingreso':'Gasto'),m:+p.monto>0?+p.monto:0,mo:mon,f:fe}}).filter(x=>x.m>0);
+  if(!TQ.length){toast('No entendí ningún monto en el audio');ACT.verTest(ta.tid);return}
+  tstAudioShow()}
+function tstAudioShow(){const t=testsAll().find(x=>x.id===TQT);
+  modal(`<h2>Entendí ${TQ.length} ${TQ.length===1?'movimiento':'movimientos'}</h2><small>Se cargan en «${esc(t?t.n:'')}», no en tus egresos. Revisalos y confirmá. Los ingresos se toman como netos (lo que te queda).</small><div class="tb" style="margin-top:10px">${TQ.map((x,i)=>`<div class="tr" style="--c:minmax(0,1fr) auto 28px"><span class="d2"><span class="d">${esc(x.d)}</span><span class="d sm2">${x.tipo==='ingreso'?'INGRESO':'GASTO'} · ${fmtFecha(x.f)}</span></span><span class="r"><b>${AM(money(x.m,x.mo))}</b></span><button class="ib sm" data-a="tqDel" data-p="${i}">${I('x')}</button></div>`).join('')}</div><div class="acts"><button class="btn" data-a="tqCancel">Cancelar</button><button class="btn wh" data-a="tqOk">Cargar ${TQ.length}</button></div>`)}
+ACT.tqDel=i=>{TQ.splice(+i,1);if(!TQ.length){ACT.tqCancel();return}tstAudioShow()};
+ACT.tqCancel=()=>{const id=TQT;TQ=[];TAUD=null;closeModal();setTimeout(()=>ACT.verTest(id),300)};
+ACT.tqOk=()=>{if(!TQ.length)return;const L=testsAll(),a=JSON.parse(JSON.stringify(tests())),d=materTest(a,TQT,L);if(!d)return;
+  TQ.forEach(x=>(x.tipo==='ingreso'?d.i:d.g).unshift({id:uid(),d:x.d,m:x.m,mo:x.mo,f:x.f}));const id=d.id;
+  if(!saveTests(a))return;TQ=[];TAUD=null;closeModal();setTimeout(()=>ACT.verTest(id),300)};
 
 /* ===== bloqueo (PIN + Face ID) ===== */
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}

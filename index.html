@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-fFYuVQI/jLCmr8an9GCqrZouQQ0pyh/ByvIdWtCsPP4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Vm5Ph6F2mlTjzTAbzumPwpM+izjkwuHT9pKR5DMZAdo='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <title>Mis Finanzas YHWH</title>
 <meta name="theme-color" content="#050507">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
@@ -43,7 +43,7 @@ body.hide-all .amt,.hideme .amt{filter:blur(9px);user-select:none}
 .nv{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;color:#a4a4bd;font-weight:600;text-align:left;width:100%;position:relative}
 .nv svg{width:19px;height:19px;flex:none}
 .nv.on{background:var(--blue);color:#fff;box-shadow:0 6px 18px #1F1EBA55}
-.nv:hover:not(.on){background:rgba(31,30,186,.16);color:#fff}
+@media(hover:hover) and (pointer:fine){.nv:hover:not(.on){background:rgba(31,30,186,.16);color:#fff}}
 #main{flex:1;min-width:0;padding:22px 28px 110px}
 #top{margin-bottom:18px;display:flex;flex-direction:column;gap:12px}
 .trow{display:flex;align-items:center;gap:12px}
@@ -56,14 +56,14 @@ body.hide-all .amt,.hideme .amt{filter:blur(9px);user-select:none}
 .acc button.on{background:#f4f4fe;color:#0a0a14;box-shadow:0 4px 16px rgba(244,244,254,.18)}
 .per{flex-wrap:wrap;justify-content:flex-end}
 .pb{padding:8px 13px;border-radius:999px;border:1px solid var(--bd);font-size:12px;font-weight:700;color:var(--mut2);white-space:nowrap;letter-spacing:.3px;transition:background .22s,color .22s,border-color .22s,transform .12s}
-.pb:hover{border-color:var(--bd2)}
+@media(hover:hover) and (pointer:fine){.pb:hover{border-color:var(--bd2)}}
 .pb.on{background:var(--blue);color:#fff;border-color:var(--blue2);box-shadow:0 0 18px rgba(31,30,186,.55)}
 .tg{border:1px solid var(--bd);border-radius:999px;padding:3px;gap:0;background:var(--card)}
 .tg button{padding:6px 13px;border-radius:999px;font-size:12px;font-weight:700;color:#a4a4bd;transition:background .22s,color .22s}
 .tg button.on{background:var(--blue);color:#fff}
 .ib{width:38px;height:38px;border-radius:50%;border:1px solid var(--bd);display:inline-flex;align-items:center;justify-content:center;color:#d4d4e6;flex:none;transition:background .2s,color .2s,border-color .2s,transform .12s}
 .ib svg{width:17px;height:17px}
-.ib:hover{border-color:var(--bd2)}
+@media(hover:hover) and (pointer:fine){.ib:hover{border-color:var(--bd2)}}
 .ib.on{background:var(--blue);color:#fff;border-color:var(--blue2)}
 .ib.sm{width:28px;height:28px}.ib.sm svg{width:14px;height:14px}
 #syncdot{width:9px;height:9px;border-radius:50%;background:#55556a;flex:none;transition:background .3s}
@@ -91,7 +91,7 @@ body.hide-all .amt,.hideme .amt{filter:blur(9px);user-select:none}
 .ca{display:flex;gap:8px;align-items:center}
 .ca .more{white-space:nowrap;flex:none}
 .more{font-size:12px;font-weight:700;color:var(--lav);padding:4px 0;transition:color .15s,transform .15s}
-.more:hover{color:#fff}
+@media(hover:hover) and (pointer:fine){.more:hover{color:#fff}}
 .big{font-family:Montserrat,Inter,sans-serif;font-weight:900;font-size:clamp(32px,4.2vw,46px);line-height:1.05;letter-spacing:-.6px}
 .mid{font-family:Montserrat,Inter,sans-serif;font-weight:800;font-size:clamp(15px,10cqw,26px);line-height:1.1;white-space:nowrap}
 .mid small{font-family:Inter,sans-serif;font-weight:500}
@@ -102,9 +102,9 @@ body.hide-all .amt,.hideme .amt{filter:blur(9px);user-select:none}
 .hl2 small{display:block;margin-bottom:2px}
 .hl2 b{font-size:16px;font-weight:800}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;font-weight:700;font-size:13px;border:1px solid var(--bd2);white-space:nowrap;transition:background .2s,color .2s,border-color .2s,transform .12s,box-shadow .2s}
-.btn:hover{border-color:#44445f}
+@media(hover:hover) and (pointer:fine){.btn:hover{border-color:#44445f}}
 .btn.wh,.btn.bk{background:var(--blue);color:#fff;border-color:var(--blue2);box-shadow:0 4px 16px #1F1EBA55}
-.btn.wh:hover,.btn.bk:hover{background:#2625d6}
+@media(hover:hover) and (pointer:fine){.btn.wh:hover,.btn.bk:hover{background:#2625d6}}
 .card.hl .btn.bk{background:#fff;color:var(--blue);border-color:#fff;box-shadow:0 4px 16px #0004}
 .card.hl .btn.out{background:#ffffff1c;border-color:#ffffff44;color:#fff}
 .btn.dg{color:var(--bad);border-color:#3d1c24}
@@ -144,7 +144,7 @@ body.hide-all .amt,.hideme .amt{filter:blur(9px);user-select:none}
 .chip.r{border-color:#5a1d27;background:#ff6b6b18;color:var(--bad)}
 .empty{color:var(--mut);padding:14px 0;font-size:13px}
 .morerow{display:block;width:100%;padding:12px 0 4px;margin-top:2px;border-top:1px solid #15151f;text-align:center;font-size:12px;font-weight:700;color:var(--lav);letter-spacing:.3px;transition:color .15s}
-.morerow:hover{color:#fff}
+@media(hover:hover) and (pointer:fine){.morerow:hover{color:#fff}}
 .card>small{display:block;margin:-6px 0 10px}
 .mo{display:none}
 .row2,.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -163,12 +163,12 @@ body.hide-all .amt,.hideme .amt{filter:blur(9px);user-select:none}
 div.bar{height:8px;border-radius:4px;background:#1a1a28;overflow:hidden}
 div.bar>i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--blue),var(--lav));transform-origin:left;animation:grow .8s var(--ease) both}
 svg path.bar{transform-box:fill-box;transform-origin:50% 100%;animation:barg .6s var(--ease) both;animation-delay:calc(var(--i,0)*28ms);transition:filter .15s}
-svg path.bar:hover{filter:brightness(1.35)}
+@media(hover:hover) and (pointer:fine){svg path.bar:hover{filter:brightness(1.35)}}
 svg .ln1{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1s var(--ease) forwards}
 svg .ln2,svg .area{animation:vfade .9s .15s ease-out both}
 svg .dt{transform-box:fill-box;transform-origin:center;animation:pop .4s var(--ease) both;animation-delay:calc(var(--i,0)*30ms + .4s);cursor:pointer}
 svg .sl{transform-box:fill-box;transform-origin:center;animation:slin .55s var(--ease) both;animation-delay:calc(var(--i,0)*55ms);transition:opacity .15s;cursor:pointer}
-svg .sl:hover{opacity:.82}
+@media(hover:hover) and (pointer:fine){svg .sl:hover{opacity:.82}}
 #tip{position:fixed;z-index:130;background:#1b1b2c;color:#fff;border:1px solid var(--bd2);padding:6px 11px;border-radius:10px;font-size:12px;font-weight:600;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;max-width:260px;box-shadow:0 8px 24px #0009}
 #tip.on{opacity:1;transform:none}
 /* ===== esqueleto de carga ===== */
@@ -221,7 +221,7 @@ svg .sl:hover{opacity:.82}
 .nc-row input{flex:1}
 .pal{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:10px 0}
 .pal i{aspect-ratio:1;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:transform .12s,border-color .15s}
-.pal i:hover{transform:scale(1.12)}
+@media(hover:hover) and (pointer:fine){.pal i:hover{transform:scale(1.12)}}
 .pal i.on{border-color:#fff}
 .ib.cc{border-width:2px}
 .padd{display:flex;gap:10px;align-items:flex-end}
@@ -241,7 +241,7 @@ svg .sl:hover{opacity:.82}
 /* ===== botón + ===== */
 #fab{position:fixed;right:28px;bottom:28px;width:58px;height:58px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;z-index:40;box-shadow:0 10px 30px #1F1EBA88,0 0 0 1px #4a49f5;transition:transform .3s var(--ease),opacity .25s,background .2s}
 #fab svg{width:26px;height:26px;stroke-width:2.4;transition:transform .35s var(--ease)}
-#fab:hover{background:#2625d6}
+@media(hover:hover) and (pointer:fine){#fab:hover{background:#2625d6}}
 #fab:active{transform:scale(.92)}
 body.no-fab #fab{transform:scale(0);opacity:0;pointer-events:none}
 body.fab-open #fab svg{transform:rotate(135deg)}
@@ -392,6 +392,11 @@ body.fab-open #fabm button{opacity:1;transform:none;transition-delay:calc(var(--
 }
 .tr.rc{grid-template-columns:26px 52px minmax(0,1fr) auto}
 @media(max-width:700px){.tr.rc{grid-template-columns:26px 44px minmax(0,1fr) auto}}
+/* sensación nativa en el celular */
+html{-webkit-text-size-adjust:100%;overscroll-behavior:none}
+body{min-height:100vh;min-height:100dvh}
+#app{min-height:100vh;min-height:100dvh}
+button,[role=button],.nv,.pb,.chk,.ib,.btn,.acc button,.tg button,a{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 </style></head><body>
 <div id="app"><aside id="side"></aside><main id="main"><header id="top"></header><div id="view" class="grid"></div></main></div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="lum" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.299 0.587 0.114 0 0"/></filter></svg>
@@ -406,7 +411,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelecto
 /* github.io comparte el almacenamiento entre todas las apps del mismo usuario: las claves de esta llevan prefijo para no mezclarse con otras */
 const NS='yhwh.';
 /* se cambia en cada publicación: Ajustes lo muestra para saber qué versión tiene cada dispositivo */
-const VERSION='v11 · 5 nov 2026 · Testeos con ingresos netos y audio';
+const VERSION='v12 · 5 nov 2026 · Mejoras para el celular';
 const LS={get(k,d){try{const v=localStorage.getItem(NS+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(NS+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(NS+k)}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf0=new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}),nf2=new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});

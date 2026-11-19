@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-4IIkvqYXuIUOO4/H7LVrQb/LZGtzKC8Vk4S6fZfssJo='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-bUp/A2bYP94nFdvnbTC/Uu7YW6jbyGYxsQpPZ1X8lL8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <title>Mis Finanzas YHWH</title>
@@ -411,7 +411,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelecto
 /* github.io comparte el almacenamiento entre todas las apps del mismo usuario: las claves de esta llevan prefijo para no mezclarse con otras */
 const NS='yhwh.';
 /* se cambia en cada publicación: Ajustes lo muestra para saber qué versión tiene cada dispositivo */
-const VERSION='v13 · 17 nov 2026 · Importar ventas de Impultienda';
+const VERSION='v14 · 18 nov 2026 · Ventas por pasarela y moneda';
 const LS={get(k,d){try{const v=localStorage.getItem(NS+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(NS+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(NS+k)}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf0=new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}),nf2=new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -548,11 +548,18 @@ const mulV=(a,k)=>({usd:a.usd*k,ars:a.ars*k});
 const sumV=(list,f)=>list.reduce((s,r)=>addV(s,f(r)),Z());
 const mesDe=r=>r.mes||String(r.fecha||'').slice(0,7);
 /* comisiones de las plataformas: la planilla guarda el monto BRUTO y la app muestra y suma el NETO. Se aplican según el origen del ingreso (los cargados a mano no tienen) y se cambian en Ajustes */
-const COM_DEF=[{o:'impultienda',m:'ARS',p:6.19,f:0},{o:'stripe',m:'USD',p:5.4,f:0.3},{o:'whop',m:'USD',p:5.99,f:0.3}];
-const comis=()=>{const a=cfg('comisiones',null);return Array.isArray(a)?a:COM_DEF};
+const COM_DEF=[{o:'impultienda',m:'ARS',p:6.19,f:0},{o:'stripe',m:'USD',p:5.4,f:0.3},{o:'whop',m:'USD',p:5.99,f:0.3},{o:'paypal',m:'USD',p:0,f:0}];
+const comis=()=>{const a=cfg('comisiones',null),base=Array.isArray(a)?a:[];return [...base,...COM_DEF.filter(d=>!base.some(b=>b.o===d.o&&b.m===d.m))]};
+/* nombres de las pasarelas y monedas para el desglose */
+const PASARELA={impultienda:'Mercado Pago',stripe:'Stripe',whop:'Whop',paypal:'PayPal'};
+const MONEDA_N={ARS:'Pesos',USD:'Dólares'};
 const comRule=r=>{const o=String(r.origen||'').toLowerCase();return comis().find(c=>c.o===o&&c.m===(r.moneda||'USD'))};
-const comisionDe=r=>{const c=comRule(r);if(!c)return 0;const m=+r.monto||0;return Math.round(Math.min(m,Math.max(0,m*(+c.p||0)/100+(+c.f||0)))*100)/100};
-const netoIng=r=>(+r.monto||0)-comisionDe(r);
+/* ventas ya NETAS: Impultienda (UTMIFLOW) informa las ventas con la comisión descontada. Se cargan con notas "Neto ... | bruto=49.00 | comision=3.15" y la app no vuelve a descontar nada */
+const esNeto=r=>/^\s*neto\b/i.test(String(r.notas||''));
+const notaVal=(r,k)=>{const m=new RegExp('\\b'+k+'=([0-9]+(?:[.][0-9]+)?)').exec(String(r.notas||''));return m?+m[1]:null};
+const comisionDe=r=>{if(esNeto(r)){const c=notaVal(r,'comision');return c==null?0:c}const c=comRule(r);if(!c)return 0;const m=+r.monto||0;return Math.round(Math.min(m,Math.max(0,m*(+c.p||0)/100+(+c.f||0)))*100)/100};
+const brutoDe=r=>esNeto(r)?(notaVal(r,'bruto')!=null?notaVal(r,'bruto'):(+r.monto||0)+comisionDe(r)):(+r.monto||0);
+const netoIng=r=>esNeto(r)?(+r.monto||0):(+r.monto||0)-comisionDe(r);
 const vIng=r=>conv(netoIng(r),r.moneda||'USD',mesDe(r));
 /* los totales de egresos suman solo lo que ya está pagado: lo que figura en "Qué me queda pagar" no suma hasta que lo marcás */
 const vEgrA=r=>conv(r.monto,r.moneda||'USD',mesDe(r));
@@ -851,7 +858,7 @@ function formSaldo(id){const r=id?D('Saldos').find(x=>x.id===id):null;
    onOk:o=>{up('Saldos',{id:r?r.id:uid(),donde:o.donde,descripcion:o.descripcion,moneda:o.moneda,monto:o.monto,actualizado:todayISO()})},
    onDel:r?()=>del('Saldos',r.id):null})}
 /* ---- listas ---- */
-function rowIng(r){const com=comisionDe(r),sub=[r.oferta,r.mercado,tagCta(r),com>0?'bruto '+money(r.monto,r.moneda)+' − comisión '+money(com,r.moneda):''].filter(Boolean).join(' · ');
+function rowIng(r){const com=comisionDe(r),sub=[r.oferta,r.mercado,tagCta(r),com>0?'bruto '+money(brutoDe(r),r.moneda)+' − comisión '+money(com,r.moneda):''].filter(Boolean).join(' · ');
   return `<div class="tr ig" data-rt="edIng" data-p="${esc(r.id)}"><span class="mut">${fmtFecha(r.fecha)}</span><span class="d2"><span class="d">${esc(r.descripcion)}</span>${sub?`<span class="d sm2">${esc(sub)}</span>`:''}</span><span class="r"><b>${AM(money(netoIng(r),r.moneda))}</b></span>${editDel('edIng','delIng',r.id)}</div>`}
 function rowEgr(e){const pd=isPaid(e);
   return `<div class="tr te" data-rt="edEgr" data-p="${esc(e.id)}"><span class="c1">${chkB(pd,'pay',e.id)}</span><span class="d2"><span class="d${pd?' paid':''}">${esc(e.descripcion)}</span><span class="d sm2"><i class="dot" style="background:${catColor(e.categoria)}"></i>${fmtFecha(e.fecha)} · ${esc(e.categoria||SINCAT)}${esAgg()?' · '+esc(cuentaDe(e)):''}<span class="mo"> ${vencChip(e)}</span></span></span><span class="vc">${vencChip(e)}</span><span class="r"><b>${AM(money(e.monto,e.moneda||'USD'))}</b></span>${editDel('edEgr','delEgr',e.id)}</div>`}
@@ -910,6 +917,13 @@ W.porMercado=()=>{const L=ingresosP(PD()),m=fmCur();return `<div class="card">${
 W.mov=(full)=>{const L=ingresosP(PD());return `<div class="card">${hdr('Movimientos',addBtn('addIng','','Nuevo ingreso','wh'),'mov')}${L.length?`<div class="tb">${lim(L,full,8).map(rowIng).join('')}</div>${moreRow(L.length,8,'mov',full)}`:empty('Sin ingresos en este período',`<div style="margin-top:10px">${addBtn('addIng','','Cargar el primero','wh')}</div>`)}</div>`};
 W.diaI=()=>{const P=PD(),m=fmCur(),L=ingresosP(P),it=buckets(P).map(k=>{const v=L.filter(e=>e.fecha>=k.a&&e.fecha<=k.b).reduce((s,e)=>s+vIng(e)[m],0);return{label:k.label,v,tip:k.label+' · '+fmV(v,m)}});
   return `<div class="card">${hdr('Ingresos por día')}${it.every(x=>!x.v)?empty('Sin ingresos en este período'):chartBox('diaI',[P.from,P.to,m,it.map(x=>x.v)],(w,h)=>barsSvg(it,w,h),190)}</div>`};
+/* ventas por pasarela y moneda: cuántas, cuánto entró bruto, cuánto se llevó la pasarela y cuánto queda */
+W.pasa=(full)=>{const L=ingresosP(PD()),by={};
+  L.forEach(r=>{const o=String(r.origen||'').toLowerCase(),pg=PASARELA[o]||'Manual y otros',mo=(r.moneda||'USD')==='ARS'?'ARS':'USD',k=pg+'|'+mo,x=by[k]||(by[k]={pg,mo,n:0,b:0,c:0,t:0});
+    x.n++;x.b+=brutoDe(r);x.c+=comisionDe(r);x.t+=netoIng(r)});
+  const rows=Object.values(by).sort((a,b)=>a.pg.localeCompare(b.pg,'es')||a.mo.localeCompare(b.mo)),tot={ARS:0,USD:0};rows.forEach(x=>tot[x.mo]+=x.t);
+  const row=x=>`<div class="tr" style="--c:minmax(0,1fr) auto"><span class="d2"><span class="d">${esc(x.pg)} · ${MONEDA_N[x.mo]}</span><span class="d sm2">${x.n} ${x.n===1?'venta':'ventas'} · bruto ${AM(money(x.b,x.mo))}${x.c>0?' − comisión '+AM(money(x.c,x.mo)):''}</span></span><span class="r"><b>${AM(money(x.t,x.mo))}</b></span></div>`;
+  return `<div class="card">${hdr('Ventas por pasarela y moneda',eyeBtn('pasa'))}${rows.length?`<small>Lo que queda después de comisiones, por pasarela y moneda</small><div class="tb" style="margin-top:8px">${rows.map(row).join('')}${['ARS','USD'].filter(m=>rows.some(x=>x.mo===m)).map(m=>`<div class="tr tot" style="--c:1fr auto"><span>TOTAL ${MONEDA_N[m].toUpperCase()}</span><span class="r">${AM(money(tot[m],m))}</span></div>`).join('')}</div>`:empty('Sin ingresos en este período')}</div>`};
 /* ---- egresos ---- */
 W.heroE=()=>{const P=PD(),L=egresosP(P),t=sumV(L,vEgr);const[pg,n]=cnt(L);
   return `<div class="card hl"><div class="ch"><span class="t">${heroTitle('EGRESOS',P)}</span>${eyeBtn('all')}</div>${BIG(t,'heroE')}<div class="sub">${AS(t)||''}${AS(t)?' · ':''}${pg} de ${n} pagados</div>
@@ -1029,12 +1043,12 @@ W.deuMov=(full)=>{const P=PD(),L=pagosP(P),pg=pagadoP(P);
   return `<div class="card">${hdr('Pagos y movimientos',addBtn('payDeu','','Registrar','wh'),'deuMov')}${L.length?`<div class="tb">${lim(L,full,8).map(rowMov).join('')}<div class="tr tot" style="--c:1fr auto"><span>PAGADO</span><span class="r">${AA(pg,'usd')}</span></div></div>${moreRow(L.length,8,'deuMov',full)}`:empty('Sin pagos en este período')}</div>`};
 /* ===== registro de widgets por sección ===== */
 const TITLES={hero:'Balance',cot:'Cotización USD',cIng:'Ingresos (total)',cEgr:'Egresos (total)',pend:'Qué me queda pagar',dist:'Distribución de egresos',evo:'Evolución mensual',acum:'Evolución diaria',lIng:'Lista de ingresos',lEgr:'Lista de egresos',rec:'Recurrentes',saR:'Saldos',deR:'Préstamos y deudas',
- heroI:'Lo que ganaste',porOferta:'Ingresos por oferta',porMercado:'Ingresos por mercado',mov:'Movimientos',diaI:'Ingresos por día',heroE:'Egresos',listaE:'Egresos del período',tst:'Testeos (aparte del total)',
+ heroI:'Lo que ganaste',porOferta:'Ingresos por oferta',porMercado:'Ingresos por mercado',pasa:'Ventas por pasarela y moneda',mov:'Movimientos',diaI:'Ingresos por día',heroE:'Egresos',listaE:'Egresos del período',tst:'Testeos (aparte del total)',
  heroA:'Total saldos',saL:'Cuentas y saldos',saH:'Historial de saldos',heroD:'Actual préstamos/deudas',dch:'Actual vs total',dD:'Deudas',dP:'Préstamos',dA:'Actual',dT:'Total',heroP:'Pagado en el período',deuEvo:'Deuda mes a mes',deuMov:'Pagos y movimientos'};
 function sectionWidgets(sec){
   const mk=a=>a.map(x=>({id:x[0],d:x[1],m:x[2],r:W[x[0]]}));
   if(sec==='resumen')return mk([['hero','L','F'],['cot','S','F'],['cIng','M','S'],['cEgr','M','S'],['pend','M','F'],['dist','M','F'],['evo','M','F'],['acum','M','F'],['lIng','M','F'],['lEgr','M','F'],['rec','M','F'],['saR','M','F'],['deR','M','F']]);
-  if(sec==='ingresos')return mk([['heroI','L','F'],['cot','S','F'],['porOferta','M','F'],['porMercado','M','F'],['mov','F','F'],['acum','F','F'],['evo','F','F']]);
+  if(sec==='ingresos')return mk([['heroI','L','F'],['cot','S','F'],['porOferta','M','F'],['porMercado','M','F'],['pasa','F','F'],['mov','F','F'],['acum','F','F'],['evo','F','F']]);
   if(sec==='egresos')return mk([['heroE','L','F'],['cot','S','F'],['pend','M','F'],['rec','M','F'],['listaE','F','F'],['tst','M','F'],['dist','M','F'],['acum','F','F'],['evo','F','F']]);
   if(sec==='saldos')return mk([['heroA','F','F'],['saL','M','F'],['saH','M','F']]);
   if(sec==='deudas')return mk([['heroP','M','F'],['heroD','M','F'],['deuEvo','F','F'],['deuMov','F','F'],['dD','M','F'],['dP','M','F'],['dch','M','F'],['dA','M','F'],['dT','M','F']]);
@@ -1323,7 +1337,7 @@ function settingsHTML(){const L=LS.get('lock',null);const host=(()=>{try{return 
    <div class="sec" style="margin:14px 0 0"><h3 style="margin-bottom:0">Ingreso</h3>${codeBox(atajoTxt('Ingresos'))}</div>
    <small style="display:block;margin-top:10px">El id tiene que ser distinto en cada uso (por ejemplo, la fecha y la hora). Si repetís un id, se reemplaza esa fila en vez de crear otra.</small></div></div>
   <div class="card"><div class="sec"><h3>Ventas de Impultienda</h3><small>Exportá tus ventas de Impultienda en CSV y subilas acá cuando quieras. Se hace a mano y no gasta tokens. Cada tienda nueva pasa a ser un testeo.</small><div class="acts" style="justify-content:flex-start"><button class="btn wh" data-a="impVentas">Importar ventas desde un archivo</button></div></div></div>
-  <div class="card"><div class="sec"><h3>Comisiones de las plataformas</h3><small>Los ingresos de cada plataforma se muestran y suman <b>netos</b>: se les descuenta la comisión. En la planilla queda el monto bruto. Los ingresos cargados a mano no tienen comisión.</small>${comis().map(c=>`<div class="ln"><span>${esc(c.o==='impultienda'?'Impultienda + Mercado Pago (pesos)':c.o==='stripe'?'Impultienda + Stripe (dólares)':c.o==='whop'?'Impultienda + Whop (dólares)':c.o)}<small>${+c.p||0}%${+c.f?' + '+(+c.f)+' por venta':''}</small></span></div>`).join('')}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="editCom">Cambiar comisiones</button></div></div></div>
+  <div class="card"><div class="sec"><h3>Comisiones de las plataformas</h3><small>Los ingresos de cada plataforma se muestran y suman <b>netos</b>: se les descuenta la comisión. En la planilla queda el monto bruto. Los ingresos cargados a mano no tienen comisión.</small>${comis().map(c=>`<div class="ln"><span>${esc(c.o==='impultienda'?'Impultienda + Mercado Pago (pesos)':c.o==='stripe'?'Impultienda + Stripe (dólares)':c.o==='whop'?'Impultienda + Whop (dólares)':c.o==='paypal'?'PayPal (dólares)':c.o)}<small>${+c.p||0}%${+c.f?' + '+(+c.f)+' por venta':''}</small></span></div>`).join('')}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="editCom">Cambiar comisiones</button></div></div></div>
   <div class="card"><div class="sec"><h3>Pantallas</h3><div class="ln"><span>Restablecer el orden y tamaño de todas las tarjetas de este dispositivo</span><button class="btn dg" data-a="resetAll">Restablecer</button></div></div></div></div>`}
 document.addEventListener('change',e=>{const t=e.target;
   if(t.dataset&&t.dataset.a==='lockTime'){const L=LS.get('lock',null);if(L){L.t=+t.value;LS.set('lock',L);toast('Listo')}}
@@ -1459,7 +1473,7 @@ function audLista(){if(!AUDQ.length)return;
 ACT.audItem=i=>{const p=AUDQ[+i];if(!p)return;AUDQ.splice(+i,1);AUDF=false;closeModal();setTimeout(()=>{AUDF=true;fotoForm(p,'del audio')},300)};
 ACT.audFin=()=>{AUDQ=[];AUDF=false;closeModal()};
 /* ===== comisiones por plataforma ===== */
-ACT2.editCom=()=>{const L=comis().map(c=>({...c})),nom=c=>c.o==='impultienda'?'Impultienda + Mercado Pago (pesos)':c.o==='stripe'?'Impultienda + Stripe (dólares)':c.o==='whop'?'Impultienda + Whop (dólares)':c.o;
+ACT2.editCom=()=>{const L=comis().map(c=>({...c})),nom=c=>c.o==='impultienda'?'Impultienda + Mercado Pago (pesos)':c.o==='stripe'?'Impultienda + Stripe (dólares)':c.o==='whop'?'Impultienda + Whop (dólares)':c.o==='paypal'?'PayPal (dólares)':c.o;
   form({title:'Comisiones',fields:L.flatMap((c,i)=>[{k:'p'+i,l:nom(c)+': % por venta',t:'number',v:c.p,half:1},{k:'f'+i,l:'Fijo por venta ('+(c.m==='ARS'?'pesos':'US$')+')',t:'number',v:c.f,half:1}]),
    extra:'<div class="sub" style="margin-top:6px">Impultienda 2% + Mercado Pago 4,19% = 6,19%. Stripe: 2% de Impultienda + 3,4% de Stripe = 5,4%, más 0,30 fijos. Whop: 2% + 3,99% = 5,99%, más 0,30 fijos. Chequealo con una venta real.</div>',
    onOk:o=>{const R=L.map((c,i)=>({o:c.o,m:c.m,p:Math.min(50,Math.max(0,+o['p'+i]||0)),f:Math.min(100000,Math.max(0,+o['f'+i]||0))}));setCfg('comisiones',R);toast('Comisiones guardadas')}})};
@@ -1509,7 +1523,7 @@ function parseVentas(txt){const R=csvRows(txt);if(R.length<2)return{error:'el ar
     const raw=C.id>=0?String(r[C.id]||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,40):'',mo=C.mo>=0?String(r[C.mo]||'').toUpperCase():'',pg=C.pa>=0?normH(r[C.pa]):'';
     out.push({f,m,id:'impultienda-'+(raw||'imp'+hashVenta(r.join('|'))),ref:raw,tienda:C.t>=0?String(r[C.t]||'').trim():'',prod:C.p>=0?String(r[C.p]||'').trim():'',
       mo:/ARS/.test(mo)?'ARS':/USD|US\$|DOLAR/.test(mo)?'USD':'',pais:C.pais>=0?String(r[C.pais]||'').trim().slice(0,3).toUpperCase():'',
-      og:/mercado|mp/.test(pg)?'impultienda':/stripe|card|tarjeta/.test(pg)?'stripe':/whop/.test(pg)?'whop':''})});
+      og:/mercado|mp/.test(pg)?'impultienda':/stripe|card|tarjeta/.test(pg)?'stripe':/whop/.test(pg)?'whop':/paypal|pay pal/.test(pg)?'paypal':''})});
   return{ventas:out,saltadas,tieneTienda:C.t>=0&&out.some(v=>v.tienda)}}
 ACT2.impVentas=()=>modal(`<h2>Importar ventas de Impultienda</h2><small>Exportá tus ventas desde Impultienda en formato CSV y subí el archivo acá. Tu app crea los ingresos con el nombre de la tienda (cada tienda nueva pasa a ser un testeo) y con el monto bruto: las comisiones las descuenta sola. Se hace a mano, cuando quieras, y no gasta tokens. Las ventas que ya estén cargadas se saltean.</small>
  <div class="acts" style="margin-top:14px"><button class="btn" data-a="closeM">Cancelar</button><label class="btn wh" style="cursor:pointer">Elegir el archivo CSV<input type="file" id="ventf" accept=".csv,.txt,text/csv,text/plain" style="display:none"></label></div><small id="ventmsg" style="display:block;margin-top:10px"></small>`);
@@ -1526,7 +1540,7 @@ function ventasConfirmar(p){const ya=new Set(D('Ingresos').map(r=>r.id)),nuevas=
   form({title:'Importar '+nuevas.length+(nuevas.length===1?' venta':' ventas'),ok:'Importar',fields:[
     {k:'tienda',l:p.tieneTienda?'Nombre de la tienda (vacío: usa el del archivo)':'Nombre de la tienda',v:p.tieneTienda?'':'',req:!p.tieneTienda,ph:'Ej: El método del reloj'},
     {k:'moneda',l:'Moneda de las ventas',t:'select',opts:monedaOpts(modef),v:modef,half:1},
-    {k:'origen',l:'Pasarela (define la comisión)',t:'select',opts:[{v:'auto',l:'Según moneda'},{v:'impultienda',l:'Mercado Pago · 6,19%'},{v:'stripe',l:'Stripe · 5,4% + 0,30'},{v:'whop',l:'Whop · 5,99% + 0,30'}],v:'auto',half:1}],
+    {k:'origen',l:'Pasarela (define la comisión)',t:'select',opts:[{v:'auto',l:'Según moneda'},{v:'impultienda',l:'Mercado Pago · 6,19%'},{v:'stripe',l:'Stripe · 5,4% + 0,30'},{v:'whop',l:'Whop · 5,99% + 0,30'},{v:'paypal',l:'PayPal'}],v:'auto',half:1}],
    extra:`<div class="sub" style="margin-top:6px">${nuevas.length} ventas nuevas (${p.ventas.length-nuevas.length} ya estaban) del ${fmtFecha(fechas[0])} al ${fmtFecha(fechas[fechas.length-1])}${tiendas.length?' · tiendas del archivo: '+esc(tiendas.slice(0,4).join(', ')):''}${p.saltadas?' · '+p.saltadas+' filas salteadas (sin pagar o reembolsadas)':''}. Nada se guarda hasta que toques Importar.</div>`,
    onOk:o=>{const filas=nuevas.map(v=>{const mo=v.mo||o.moneda,nom=(o.tienda||v.tienda||v.prod||'').trim();if(!nom)return null;
       const og=v.og||(o.origen!=='auto'?o.origen:(mo==='ARS'?'impultienda':'stripe'));

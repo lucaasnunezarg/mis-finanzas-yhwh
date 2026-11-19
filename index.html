@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-bUp/A2bYP94nFdvnbTC/Uu7YW6jbyGYxsQpPZ1X8lL8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-0Q/wxX3M31OKyk9Cs0RAvAf35OOesx7rBzbayMt88ws='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <title>Mis Finanzas YHWH</title>
@@ -551,7 +551,7 @@ const mesDe=r=>r.mes||String(r.fecha||'').slice(0,7);
 const COM_DEF=[{o:'impultienda',m:'ARS',p:6.19,f:0},{o:'stripe',m:'USD',p:5.4,f:0.3},{o:'whop',m:'USD',p:5.99,f:0.3},{o:'paypal',m:'USD',p:0,f:0}];
 const comis=()=>{const a=cfg('comisiones',null),base=Array.isArray(a)?a:[];return [...base,...COM_DEF.filter(d=>!base.some(b=>b.o===d.o&&b.m===d.m))]};
 /* nombres de las pasarelas y monedas para el desglose */
-const PASARELA={impultienda:'Mercado Pago',stripe:'Stripe',whop:'Whop',paypal:'PayPal'};
+const PASARELA={impultienda:'Mercado Pago',stripe:'Stripe',whop:'Whop',paypal:'PayPal',impulpay:'Stripe'};
 const MONEDA_N={ARS:'Pesos',USD:'Dólares'};
 const comRule=r=>{const o=String(r.origen||'').toLowerCase();return comis().find(c=>c.o===o&&c.m===(r.moneda||'USD'))};
 /* ventas ya NETAS: Impultienda (UTMIFLOW) informa las ventas con la comisión descontada. Se cargan con notas "Neto ... | bruto=49.00 | comision=3.15" y la app no vuelve a descontar nada */
@@ -919,7 +919,7 @@ W.diaI=()=>{const P=PD(),m=fmCur(),L=ingresosP(P),it=buckets(P).map(k=>{const v=
   return `<div class="card">${hdr('Ingresos por día')}${it.every(x=>!x.v)?empty('Sin ingresos en este período'):chartBox('diaI',[P.from,P.to,m,it.map(x=>x.v)],(w,h)=>barsSvg(it,w,h),190)}</div>`};
 /* ventas por pasarela y moneda: cuántas, cuánto entró bruto, cuánto se llevó la pasarela y cuánto queda */
 W.pasa=(full)=>{const L=ingresosP(PD()),by={};
-  L.forEach(r=>{const o=String(r.origen||'').toLowerCase(),pg=PASARELA[o]||'Manual y otros',mo=(r.moneda||'USD')==='ARS'?'ARS':'USD',k=pg+'|'+mo,x=by[k]||(by[k]={pg,mo,n:0,b:0,c:0,t:0});
+  L.forEach(r=>{const o=String(r.origen||'').toLowerCase(),pg=PASARELA[o]||'Sin pasarela',mo=(r.moneda||'USD')==='ARS'?'ARS':'USD',k=pg+'|'+mo,x=by[k]||(by[k]={pg,mo,n:0,b:0,c:0,t:0});
     x.n++;x.b+=brutoDe(r);x.c+=comisionDe(r);x.t+=netoIng(r)});
   const rows=Object.values(by).sort((a,b)=>a.pg.localeCompare(b.pg,'es')||a.mo.localeCompare(b.mo)),tot={ARS:0,USD:0};rows.forEach(x=>tot[x.mo]+=x.t);
   const row=x=>`<div class="tr" style="--c:minmax(0,1fr) auto"><span class="d2"><span class="d">${esc(x.pg)} · ${MONEDA_N[x.mo]}</span><span class="d sm2">${x.n} ${x.n===1?'venta':'ventas'} · bruto ${AM(money(x.b,x.mo))}${x.c>0?' − comisión '+AM(money(x.c,x.mo)):''}</span></span><span class="r"><b>${AM(money(x.t,x.mo))}</b></span></div>`;
